@@ -1,48 +1,48 @@
 import {
   Entity,
-  Column,
   PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { UserRole } from '../../../common/enums/user-role.enum';
-import { UserStatus } from '../../../common/enums/user-status.enum';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn('increment')
+  id: number;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column()
-  password: string;
-
-  @Column({ nullable: true })
-  fullName: string;
+  @Column({ type: 'varchar', length: 255 })
+  password_hash: string;
 
   @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.CANDIDATE,
+    type: 'varchar',
+    length: 20,
+    default: 'candidate',
   })
-  role: UserRole;
+  role: 'candidate' | 'employer' | 'admin';
+
+  @Column({ type: 'boolean', default: false })
+  is_verified: boolean;
 
   @Column({
-    type: 'enum',
-    enum: UserStatus,
-    default: UserStatus.ACTIVE,
+    type: 'varchar',
+    length: 20,
+    default: 'pending',
   })
-  status: UserStatus;
+  status: 'pending' | 'active' | 'banned';
 
-  @Column({ nullable: true })
-  avatar: string;
+  @Column({ type: 'timestamp', nullable: true })
+  email_verified_at: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  last_login_at: Date;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }
-
