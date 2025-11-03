@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
 } from 'typeorm';
-
+import { Candidate } from '../../candidates/entities/candidate.entity';
+import { Employer } from 'src/modules/employers/entities/employer.entity';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('increment')
@@ -45,4 +47,10 @@ export class User {
 
   @UpdateDateColumn()
   updated_at: Date;
+  // --- Mối quan hệ 1-1 với Candidate ---
+  @OneToOne(() => Candidate, (candidate) => candidate.user)
+  candidate: Candidate;
+  // ---------------------------------
+  @OneToOne(() => Employer, (employer) => employer.user)
+  employer: Employer;
 }
