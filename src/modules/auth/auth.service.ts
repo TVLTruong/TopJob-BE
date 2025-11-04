@@ -2,10 +2,8 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
-  Logger, // 👈 Thêm Logger để debug
+  Logger,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm'; // 👈 Thêm
-import { Repository } from 'typeorm'; // 👈 Thêm
 import { UsersService } from '../users/users.service';
 import { CandidatesService } from '../candidates/candidates.service';
 import { EmployersService } from '../employers/employers.service';
@@ -15,14 +13,14 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import type { RequestUser } from '../../common/interfaces/request-user.interface';
 import { UserRole } from '../../common/enums/user-role.enum';
-import * as bcrypt from 'bcrypt'; // 👈 Dùng để so sánh mật khẩu
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name); // 👈 Thêm Logger
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    // Tiêm (Inject) các service liên quan
+    // Tiêm (Inject) 4 "công cụ"
     private readonly usersService: UsersService,
     private readonly candidatesService: CandidatesService,
     private readonly employersService: EmployersService,
@@ -42,32 +40,29 @@ export class AuthService {
       throw new BadRequestException('Email already exists');
     }
 
-    // 2. Tạo User (AuthService sẽ gọi UsersService)
-    // (Hàm 'create' của UsersService đã được chúng ta cập nhật)
+    // 2. Tạo User (AuthService gọi UsersService)
     const newUser = await this.usersService.create(dto, dto.role);
 
     // 3. 🚀 Logic Rẽ Nhánh (Tạo hồ sơ tương ứng)
     try {
       if (dto.role === UserRole.CANDIDATE) {
-        // 3a. Nếu là Candidate, tạo hồ sơ Candidate
+        // 3a. Tạo hồ sơ Candidate
         this.logger.log(`Creating candidate profile for user ${newUser.id}`);
         await this.candidatesService.create({
           user: newUser,
           fullName: dto.fullName,
         });
       } else if (dto.role === UserRole.EMPLOYER) {
-        // 3b. Nếu là Employer, tạo hồ sơ Employer
+        // 3b. Tạo hồ sơ Employer
         this.logger.log(`Creating employer profile for user ${newUser.id}`);
         await this.employersService.create({
           user: newUser,
-          fullName: dto.fullName,
-          companyName: dto.companyName, // (DTO đã validate)
+          fullName: dto.fullName, // (full_name từ Bảng 3)
+          companyName: dto.companyName, // (company_name từ Bảng 3)
         });
       }
     } catch (error) {
-      // ‼️ ROLLBACK (Rất quan trọng)
-      // Nếu bước 3 lỗi (ví dụ: tạo profile lỗi),
-      // chúng ta phải xóa 'user' đã tạo ở bước 2
+      // ‼️ ROLLBACK (Xóa user nếu tạo profile lỗi)
       this.logger.error(
         `Profile creation failed. Rolling back user ${newUser.id}`,
         error.stack,
@@ -76,8 +71,7 @@ export class AuthService {
       throw new BadRequestException('Failed to create profile', error.message);
     }
 
-    // 4. (Tùy chọn) Gửi email xác thực ở đây...
-    // Ví dụ: await this.sendVerificationEmail(newUser);
+    // 4. (Tùy chọn) Gửi email xác thực (dùng Bảng 11) ở đây...
     
     this.logger.log(`User ${newUser.id} registered successfully`);
     return {
@@ -92,20 +86,19 @@ export class AuthService {
     // 1. Tìm user bằng email
     const user = await this.usersService.findOneByEmail(dto.email);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials'); // Không báo 'User not found'
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     // 2. So sánh mật khẩu
-    // ‼️ Cài đặt bcrypt: pnpm add bcrypt @types/bcrypt
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isMatch) {
-      throw new UnauthorizedException('Invalid credentials'); // Không báo 'Wrong password'
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 3. Kiểm tra trạng thái tài khoản
+    // 3. Kiểm tra trạng thái tài khoản (từ Bảng 1)
     if (user.status !== 'active') {
       if (user.status === 'pending') {
-        throw new UnauthorizedException('Account is pending verification');
+        throw new UnauthorizedException('Account is pending verification/approval');
       }
       if (user.status === 'banned') {
         throw new UnauthorizedException('Account has been banned');
@@ -113,16 +106,14 @@ export class AuthService {
     }
     
     // (Bạn có thể thêm check 'isVerified' ở đây nếu muốn)
-    // if (!user.isVerified) {
-    //   throw new UnauthorizedException('Please verify your email first');
-    // }
 
-    // 4. Cập nhật last_login_at (không bắt buộc)
-    // (Chúng ta có thể làm việc này sau)
+    // 4. Cập nhật last_login_at (từ Bảng 1)
+    user.lastLoginAt = new Date();
+    await this.usersService.update(user.id, {}); // (Hàm update sẽ tự save)
 
     // 5. Tạo Payload và Token
-    const payload: RequestUser = { // Dùng interface ta đã sửa
-      sub: user.id, // 👈 'sub' là number (ID của user)
+    const payload: RequestUser = { // Dùng interface ta đã sửa (sub: number)
+      sub: user.id,
       email: user.email,
       role: user.role,
     };
