@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Candidate } from './entities/candidate.entity';
-// import { CreateCandidateDto } from './dto/create-candidate.dto'; // (Sẽ dùng cho Auth)
+import { CreateCandidateDto } from './dto/create-candidate.dto'; // (Sẽ dùng cho Auth)
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
 
 @Injectable()
@@ -51,11 +51,11 @@ export class CandidatesService {
    * Khi user đăng ký (trong AuthModule), nó sẽ gọi hàm này
    * để tạo một hồ sơ candidate trống.
    */
-  // async create(dto: CreateCandidateDto) {
-  //   const candidateProfile = this.candidateRepo.create({
-  //     user: dto.user,
-  //     fullName: dto.fullName,
-  //   });
-  //   return this.candidateRepo.save(candidateProfile);
-  // }
+  async create(dto: CreateCandidateDto) {
+    const candidateProfile = this.candidateRepo.create({
+      user: dto.user,
+      fullName: dto.fullName,
+    });
+    return this.candidateRepo.save(candidateProfile);
+  }
 }

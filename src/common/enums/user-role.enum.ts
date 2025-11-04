@@ -1,5 +1,6 @@
+// Dùng để định nghĩa cột 'role'
 export enum UserRole {
-  ADMIN = 'admin',
   CANDIDATE = 'candidate',
   EMPLOYER = 'employer',
+  ADMIN = 'admin',
 }

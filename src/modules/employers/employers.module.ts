@@ -1,11 +1,19 @@
 import { Module } from '@nestjs/common';
-import { EmployersController } from './employers.controller';
 import { EmployersService } from './employers.service';
+import { EmployersController } from './employers.controller';
+import { TypeOrmModule } from '@nestjs/typeorm'; // 👈 IMPORT
+import { Employer } from './entities/employer.entity'; // 👈 IMPORT
+import { EmployerLocation } from './entities/employer-location.entity'; // 👈 IMPORT
 
 @Module({
-    controllers: [EmployersController],
-    providers: [EmployersService],
-    exports: [EmployersService],
+  imports: [
+    TypeOrmModule.forFeature([
+      Employer,
+      EmployerLocation,
+    ]), // 👈 ĐĂNG KÝ CẢ 2 ENTITY
+  ],
+  controllers: [EmployersController],
+  providers: [EmployersService],
+  exports: [EmployersService], // 👈 Export
 })
-export class EmployersModule { }
-
+export class EmployersModule {}

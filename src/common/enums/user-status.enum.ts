@@ -1,6 +1,6 @@
+// Dùng để định nghĩa cột 'status'
 export enum UserStatus {
-    ACTIVE = 'active',
-    INACTIVE = 'inactive',
-    SUSPENDED = 'suspended',
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  BANNED = 'banned',
 }
-
