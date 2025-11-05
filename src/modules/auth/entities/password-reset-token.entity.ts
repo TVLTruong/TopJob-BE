@@ -3,7 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  ManyToOne,
+  // ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
@@ -13,7 +13,7 @@ export class PasswordResetToken {
   @PrimaryGeneratedColumn('increment') // id SERIAL PRIMARY KEY
   id: number;
 
-  @ManyToOne(() => User, (user) => user.passwordResetTokens, { onDelete: 'CASCADE' })
+  // @ManyToOne(() => User, (user) => user.passwordResetTokens, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' }) // user_id INT NOT NULL REFERENCES...
   user: User;
 

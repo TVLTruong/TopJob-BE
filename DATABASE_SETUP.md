@@ -74,30 +74,9 @@ pnpm start:dev
 
 2. Nếu kết nối thành công, bạn sẽ thấy log không có lỗi database.
 
-## Bước 5: Tạo Migration (Tùy chọn)
-
-Khi bạn tạo entity mới, có thể tạo migration:
-
-1. Cài đặt TypeORM CLI (nếu chưa có):
-```bash
-npm install -g typeorm
-```
-
-2. Tạo migration:
-```bash
-typeorm migration:create src/database/migrations/InitialMigration
-```
-
-3. Chạy migration:
-```bash
-typeorm migration:run
-```
-
 ## Lưu ý quan trọng
 
 - **Synchronize**: Trong development, `synchronize: true` sẽ tự động sync schema với database. **Tắt trong production**.
-- **Migrations**: Trong production, luôn sử dụng migrations thay vì synchronize.
-- **Backup**: Luôn backup database trước khi chạy migrations trong production.
 
 ## Troubleshooting
 

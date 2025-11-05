@@ -10,9 +10,9 @@ import {
 import { UserRole } from '../../../common/enums/user-role.enum'; // 👈 Import
 import { UserStatus } from '../../../common/enums/user-status.enum'; // 👈 Import
 import { Candidate } from '../../candidates/entities/candidate.entity';
-import { Employer } from '../../employers/entities/employer.entity';
-import { EmailVerificationToken } from '../../auth/entities/email-verification-token.entity';
-import { PasswordResetToken } from '../../auth/entities/password-reset-token.entity';
+// import { Employer } from '../../employers/entities/employer.entity';
+import { OtpVerification } from '../../auth/entities/otp-verification.entity';
+// import { PasswordResetToken } from '../../auth/entities/password-reset-token.entity';
 
 @Entity('users') // Tên bảng là 'users'
 export class User {
@@ -23,7 +23,7 @@ export class User {
   email: string;
 
   @Column({ name: 'password_hash' }) // password_hash VARCHAR(255) NOT NULL
-  passwordHash: string; // 👈 Sửa: Đổi tên (từ 'password_hash' hoặc 'password')
+  password_hash: string;
 
   @Column({
     type: 'enum',
@@ -33,7 +33,7 @@ export class User {
   role: UserRole;
 
   @Column({ name: 'is_verified', default: false }) // is_verified BOOLEAN DEFAULT FALSE
-  isVerified: boolean; // 👈 Sửa: Đổi tên (từ 'is_verified')
+  is_verified: boolean;
 
   @Column({
     type: 'enum',
@@ -42,28 +42,31 @@ export class User {
   }) // status VARCHAR(20) DEFAULT 'pending' CHECK (...)
   status: UserStatus;
 
-  @Column({ name: 'email_verified_at', type: 'timestamp', nullable: true })
-  emailVerifiedAt: Date | null; // 👈 Sửa: Đổi tên
+  @Column({ name: 'email_verified_at', type: 'timestamp', nullable: true }) // email_verified_at TIMESTAMP NULL
+  email_verified_at: Date | null;
 
-  @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
-  lastLoginAt: Date | null; // 👈 Sửa: Đổi tên
+  @Column({ name: 'last_login_at', type: 'timestamp', nullable: true }) // last_login_at TIMESTAMP NULL
+  last_login_at: Date | null;
 
   @CreateDateColumn({ name: 'created_at' }) // created_at TIMESTAMP DEFAULT NOW()
   createdAt: Date | null; // 👈 Sửa: Đổi tên
 
   @UpdateDateColumn({ name: 'updated_at' }) // updated_at TIMESTAMP DEFAULT NOW()
-  updatedAt: Date; // 👈 Sửa: Đổi tên
+  updatedAt: Date;
+
+  // ---  QUAN HỆ (SẼ BÁO LỖI NẾU CHƯA TẠO FILE) ---
+  // (Chúng ta sẽ tạo các file Entity kia sau)
 
   // --- 🚀 QUAN HỆ (Sẽ báo lỗi nếu chưa tạo file entity khác) ---
   @OneToOne(() => Candidate, (candidate) => candidate.user)
   candidate: Candidate;
 
-  @OneToOne(() => Employer, (employer) => employer.user)
-  employer: Employer;
+  // @OneToOne(() => Employer, (employer) => employer.user)
+  // employer: Employer;
 
-  @OneToMany(() => EmailVerificationToken, (token) => token.user)
-  emailVerificationTokens: EmailVerificationToken[];
+  @OneToMany(() => OtpVerification, (otp) => otp.user)
+  otpVerifications: OtpVerification[];
 
-  @OneToMany(() => PasswordResetToken, (token) => token.user)
-  passwordResetTokens: PasswordResetToken[];
+  //   @OneToMany(() => PasswordResetToken, (token) => token.user)
+  //   passwordResetTokens: PasswordResetToken[];
 }

@@ -6,11 +6,11 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
-  OneToMany,
+  // OneToMany,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { Application } from '../../applications/entities/application.entity';
-import { SavedJob } from '../../saved-jobs/entities/saved-job.entity';
+// import { Application } from '../../applications/entities/application.entity';
+// import { SavedJob } from '../../saved-jobs/entities/saved-job.entity';
 
 export enum CandidateGender {
   MALE = 'male',
@@ -76,9 +76,9 @@ export class Candidate {
   updatedAt: Date;
 
   // --- Quan hệ ---
-  @OneToMany(() => Application, (app) => app.candidate)
-  applications: Application[];
+  // @OneToMany(() => Application, (app) => app.candidate)
+  // applications: Application[];
 
-  @OneToMany(() => SavedJob, (savedJob) => savedJob.candidate)
-  savedJobs: SavedJob[];
+  // @OneToMany(() => SavedJob, (savedJob) => savedJob.candidate)
+  // savedJobs: SavedJob[];
 }

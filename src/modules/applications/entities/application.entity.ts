@@ -7,7 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Candidate } from '../../candidates/entities/candidate.entity';
+// import { Candidate } from '../../candidates/entities/candidate.entity';
 import { Job } from '../../jobs/entities/job.entity';
 
 @Entity('applications')
@@ -15,9 +15,9 @@ export class Application {
   @PrimaryGeneratedColumn('increment') // id SERIAL PRIMARY KEY
   id: number;
 
-  @ManyToOne(() => Candidate, (can) => can.applications, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'candidate_id' }) // candidate_id INT NOT NULL REFERENCES...
-  candidate: Candidate;
+  // @ManyToOne(() => Candidate, (can) => can.applications, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'candidate_id' }) // candidate_id INT NOT NULL REFERENCES...
+  // candidate: Candidate;
 
   @ManyToOne(() => Job, (job) => job.applications, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'job_id' }) // job_id INT NOT NULL REFERENCES...
@@ -41,7 +41,11 @@ export class Application {
   @Column({ type: 'int', nullable: true }) // rating INT
   rating: number;
 
-  @Column({ name: 'applied_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'applied_at',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   appliedAt: Date;
 
   @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })

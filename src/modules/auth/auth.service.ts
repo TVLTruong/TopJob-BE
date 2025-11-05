@@ -1,125 +1,157 @@
 import {
   Injectable,
   BadRequestException,
-  UnauthorizedException,
-  Logger,
+  NotFoundException,
 } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
-import { CandidatesService } from '../candidates/candidates.service';
-import { EmployersService } from '../employers/employers.service';
-import { JwtService } from '@nestjs/jwt';
-import { User } from '../users/entities/user.entity';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import type { RequestUser } from '../../common/interfaces/request-user.interface';
-import { UserRole } from '../../common/enums/user-role.enum';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { RegisterCandidateDto } from './dto/register-candidate.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { User } from '../users/entities/user.entity';
+import { Candidate } from '../candidates/entities/candidate.entity';
+import { OtpVerification } from './entities/otp-verification.entity';
+import { MailerService } from '@nestjs-modules/mailer';
+import { UserRole } from '../../common/enums/user-role.enum';
+import { UserStatus } from '../../common/enums/user-status.enum';
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
-    // Tiêm (Inject) 4 "công cụ"
-    private readonly usersService: UsersService,
-    private readonly candidatesService: CandidatesService,
-    private readonly employersService: EmployersService,
-    private readonly jwtService: JwtService,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
+    @InjectRepository(Candidate)
+    private candidateRepo: Repository<Candidate>,
+    @InjectRepository(OtpVerification)
+    private otpRepo: Repository<OtpVerification>,
+    private mailerService: MailerService,
   ) {}
 
-  /**
-   * 🚀 LOGIC ĐĂNG KÝ
-   */
-  async register(dto: RegisterDto) {
-    this.logger.log(`Registration attempt for email: ${dto.email}`);
+  // === 1. ĐĂNG KÝ ỨNG VIÊN ===
+  async registerCandidate(dto: RegisterCandidateDto) {
+    const { fullName, email, password } = dto;
 
-    // 1. Kiểm tra User tồn tại
-    const userExists = await this.usersService.findOneByEmail(dto.email);
-    if (userExists) {
-      this.logger.warn(`Registration failed: Email ${dto.email} already exists`);
-      throw new BadRequestException('Email already exists');
+    // Kiểm tra email đã tồn tại
+    const existing = await this.userRepo.findOne({ where: { email } });
+    if (existing) {
+      throw new BadRequestException('Email đã được sử dụng');
     }
 
-    // 2. Tạo User (AuthService gọi UsersService)
-    const newUser = await this.usersService.create(dto, dto.role);
+    // Tạo user + candidate trong transaction
+    const user = this.userRepo.create({
+      email,
+      password_hash: await bcrypt.hash(password, 10),
+      role: UserRole.CANDIDATE,
+      is_verified: false,
+      status: UserStatus.PENDING,
+    });
 
-    // 3. 🚀 Logic Rẽ Nhánh (Tạo hồ sơ tương ứng)
-    try {
-      if (dto.role === UserRole.CANDIDATE) {
-        // 3a. Tạo hồ sơ Candidate
-        this.logger.log(`Creating candidate profile for user ${newUser.id}`);
-        await this.candidatesService.create({
-          user: newUser,
-          fullName: dto.fullName,
-        });
-      } else if (dto.role === UserRole.EMPLOYER) {
-        // 3b. Tạo hồ sơ Employer
-        this.logger.log(`Creating employer profile for user ${newUser.id}`);
-        await this.employersService.create({
-          user: newUser,
-          fullName: dto.fullName, // (full_name từ Bảng 3)
-          companyName: dto.companyName, // (company_name từ Bảng 3)
-        });
-      }
-    } catch (error) {
-      // ‼️ ROLLBACK (Xóa user nếu tạo profile lỗi)
-      this.logger.error(
-        `Profile creation failed. Rolling back user ${newUser.id}`,
-        error.stack,
-      );
-      await this.usersService.remove(newUser.id); // 👈 Rollback
-      throw new BadRequestException('Failed to create profile', error.message);
-    }
+    const savedUser = await this.userRepo.save(user);
 
-    // 4. (Tùy chọn) Gửi email xác thực (dùng Bảng 11) ở đây...
-    
-    this.logger.log(`User ${newUser.id} registered successfully`);
+    const candidate = this.candidateRepo.create({
+      user: savedUser,
+      fullName: fullName,
+    });
+    await this.candidateRepo.save(candidate);
+
+    // Tạo OTP
+    const otp = this.generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
+
+    await this.otpRepo.save({
+      email,
+      otp,
+      expiresAt,
+    });
+
+    // Gửi email
+    await this.sendOtpEmail(email, otp);
+
     return {
-      message: 'Registration successful. Please check your email to verify.',
+      message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác minh.',
+      email,
     };
   }
 
-  /**
-   * 🚀 LOGIC ĐĂNG NHẬP
-   */
-  async login(dto: LoginDto) {
-    // 1. Tìm user bằng email
-    const user = await this.usersService.findOneByEmail(dto.email);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+  // === 2. XÁC MINH OTP ===
+  async verifyOtp(dto: VerifyOtpDto) {
+    const { email, otp } = dto;
+
+    const record = await this.otpRepo.findOne({
+      where: {
+        email,
+        otp,
+        isUsed: false,
+        expiresAt: MoreThan(new Date()),
+      },
+    });
+
+    if (!record) {
+      throw new BadRequestException('Mã OTP không hợp lệ hoặc đã hết hạn');
     }
 
-    // 2. So sánh mật khẩu
-    const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!isMatch) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    // Cập nhật user
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
-    // 3. Kiểm tra trạng thái tài khoản (từ Bảng 1)
-    if (user.status !== 'active') {
-      if (user.status === 'pending') {
-        throw new UnauthorizedException('Account is pending verification/approval');
-      }
-      if (user.status === 'banned') {
-        throw new UnauthorizedException('Account has been banned');
-      }
-    }
-    
-    // (Bạn có thể thêm check 'isVerified' ở đây nếu muốn)
+    user.is_verified = true;
+    user.status = UserStatus.ACTIVE;
+    user.email_verified_at = new Date();
+    await this.userRepo.save(user);
 
-    // 4. Cập nhật last_login_at (từ Bảng 1)
-    user.lastLoginAt = new Date();
-    await this.usersService.update(user.id, {}); // (Hàm update sẽ tự save)
+    // Đánh dấu OTP đã dùng
+    record.isUsed = true;
+    record.usedAt = new Date();
+    await this.otpRepo.save(record);
 
-    // 5. Tạo Payload và Token
-    const payload: RequestUser = { // Dùng interface ta đã sửa (sub: number)
-      sub: user.id,
+    return {
+      message: 'Xác minh thành công! Bạn có thể đăng nhập.',
       email: user.email,
       role: user.role,
     };
-    
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-    };
+  }
+
+  // === GỬI LẠI OTP ===
+  async resendOtp(email: string) {
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user || user.is_verified) {
+      throw new BadRequestException('Email không hợp lệ hoặc đã được xác minh');
+    }
+
+    const otp = this.generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.otpRepo.update(
+      { email, isUsed: false },
+      { isUsed: true, usedAt: new Date() },
+    );
+
+    await this.otpRepo.save({
+      email,
+      otp,
+      expires_at: expiresAt,
+    });
+
+    await this.sendOtpEmail(email, otp);
+
+    return { success: true, message: 'Đã gửi lại mã OTP' };
+  }
+
+  // === HỖ TRỢ ===
+  private generateOtp(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  private async sendOtpEmail(email: string, otp: string) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Mã xác minh TopJob',
+      template: 'otp', // src/templates/otp.hbs
+      context: {
+        otp,
+        expiresIn: '10 phút',
+      },
+    });
   }
 }

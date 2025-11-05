@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/create-user-employer.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from '../../common/enums/user-role.enum'; // Import Enum
 
@@ -18,15 +18,15 @@ export class UsersService {
    * (Hàm này sẽ được AuthService gọi là chính)
    * Tạo user mới với mật khẩu đã hash
    */
-  async create(dto: CreateUserDto, role: UserRole) { // 👈 1. Nhận thêm 'role'
+  async create(dto: CreateUserDto, role: UserRole) {
+    // 1. Nhận thêm 'role'
     const hash = await bcrypt.hash(dto.password, 10);
 
     const user = this.userRepo.create({
       email: dto.email,
-      passwordHash: hash, // 👈 2. Sửa thành 'passwordHash'
-      role: role,         // 👈 3. Dùng 'role' động
-      // Các trường 'status' (pending) và 'isVerified' (false)
-      // sẽ tự động được gán bởi 'default' trong Entity.
+      password_hash: hash, // 2. Sửa thành 'passwordHash'
+      role: role, // 3. Dùng 'role' động
+      // Các trường 'status', 'is_verified' sẽ dùng default từ Entity
     });
 
     return this.userRepo.save(user);
@@ -66,15 +66,15 @@ export class UsersService {
 
     // Logic cập nhật mật khẩu (đã sửa cho đúng)
     if (dto.password) {
-      user.passwordHash = await bcrypt.hash(dto.password, 10); // 👈 4. Sửa 'passwordHash'
+      user.password_hash = await bcrypt.hash(dto.password, 10);
       delete dto.password; // Xóa password khỏi DTO
     }
 
     // Logic cập nhật email
     if (dto.email && dto.email !== user.email) {
       // (Nếu đổi email, nên set 'isVerified' = false và gửi lại mail)
-      user.isVerified = false;
-      user.emailVerifiedAt = null;
+      user.is_verified = false;
+      user.email_verified_at = null;
     }
 
     Object.assign(user, dto);

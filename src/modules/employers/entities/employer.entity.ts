@@ -4,13 +4,13 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToOne,
-  JoinColumn,
+  // OneToOne,
+  // JoinColumn,
   OneToMany,
   ManyToMany,
   JoinTable,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+// import { User } from '../../users/entities/user.entity';
 import { EmployerLocation } from './employer-location.entity';
 import { CompanyCategory } from '../../company-categories/entities/company-category.entity';
 import { Job } from '../../jobs/entities/job.entity';
@@ -20,9 +20,9 @@ export class Employer {
   @PrimaryGeneratedColumn('increment') // id BIGSERIAL PRIMARY KEY
   id: number;
 
-  @OneToOne(() => User, (user) => user.employer, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' }) // user_id BIGINT UNIQUE REFERENCES...
-  user: User;
+  // @OneToOne(() => User, (user) => user.employer, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'user_id' }) // user_id BIGINT UNIQUE REFERENCES...
+  // user: User;
 
   @Column({ name: 'full_name' }) // full_name VARCHAR(255) NOT NULL
   fullName: string;
