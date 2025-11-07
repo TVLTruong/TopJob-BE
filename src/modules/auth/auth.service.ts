@@ -2,6 +2,8 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException, 
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
@@ -18,6 +20,10 @@ import { UserStatus } from '../../common/enums/user-status.enum';
 import { RegisterEmployerDto } from './dto/register-employer.dto';
 import { Employer } from '../employers/entities/employer.entity';
 import { EmployerLocation } from '../employers/entities/employer-location.entity';
+import { JwtService } from '@nestjs/jwt'; 
+import { ConfigService } from '@nestjs/config'; 
+import { LoginDto } from './dto/login.dto';
+import type { RequestUser } from '../../common/interfaces/request-user.interface'; // 👈 THÊM
 
 @Injectable()
 export class AuthService {
@@ -33,6 +39,9 @@ export class AuthService {
     @InjectRepository(OtpVerification)
     private otpRepo: Repository<OtpVerification>,
     private mailerService: MailerService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly logger = new Logger(AuthService.name)
   ) {}
 
   // === 1. ĐĂNG KÝ ỨNG VIÊN ===
@@ -149,6 +158,54 @@ export class AuthService {
         'Đăng ký thành công! Vui lòng chờ phê duyệt từ quản trị viên (24-48 giờ).',
       email: workEmail,
       estimatedTime: '24-48 giờ',
+    };
+  }
+  // * 🚀 LOGIC ĐĂNG NHẬP
+  //  */
+  async login(dto: LoginDto) {
+    this.logger.log(`Login attempt for email: ${dto.email}`);
+
+    // 1. Tìm user bằng email (dùng 'this.userRepo' y hệt code của TVLTruong)
+    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    if (!user) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+    }
+
+    // 2. So sánh mật khẩu (dùng 'password_hash' từ Entity đã được 'TVLTruong' update)
+    const isMatch = await bcrypt.compare(dto.password, user.password_hash);
+    if (!isMatch) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+    }
+
+    // 3. Kiểm tra trạng thái tài khoản (dùng 'status' từ Entity)
+    if (user.status !== UserStatus.ACTIVE) {
+      if (user.status === UserStatus.PENDING) {
+        throw new UnauthorizedException('Tài khoản đang chờ phê duyệt/xác minh');
+      }
+      if (user.status === UserStatus.BANNED) {
+        throw new UnauthorizedException('Tài khoản đã bị khóa');
+      }
+    }
+    
+    // 3b. Kiểm tra 'is_verified' (từ logic OTP của TVLTruong)
+    if (!user.is_verified) {
+      throw new UnauthorizedException('Tài khoản chưa được xác minh OTP');
+    }
+
+    // 4. Cập nhật last_login_at (dùng 'last_login_at' từ Entity)
+    user.last_login_at = new Date();
+    await this.userRepo.save(user); // 👈 (AuthService tự save, không cần UsersService)
+
+    // 5. Tạo Payload (Nội dung Token)
+    const payload: RequestUser = { // (Dùng interface RequestUser)
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    
+    // 6. Tạo và trả về Token
+    return {
+      access_token: await this.jwtService.signAsync(payload),
     };
   }
 

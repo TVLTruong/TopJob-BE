@@ -88,4 +88,7 @@ export class UsersService {
     const user = await this.findOne(id);
     return this.userRepo.remove(user);
   }
+  async save(user: User): Promise<User> {
+    return this.userRepo.save(user);
+  }
 }
