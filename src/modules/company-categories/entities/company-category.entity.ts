@@ -4,24 +4,24 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  OneToMany,
-  JoinColumn,
-  ManyToMany,
+  // ManyToOne,
+  // OneToMany,
+  // JoinColumn,
+  // ManyToMany,
 } from 'typeorm';
-import { Employer } from '../../employers/entities/employer.entity';
+// import { Employer } from '../../employers/entities/employer.entity';
 
 @Entity('companies_categories')
 export class CompanyCategory {
   @PrimaryGeneratedColumn('increment') // id SERIAL PRIMARY KEY
   id: number;
 
-  @ManyToOne(() => CompanyCategory, (cat) => cat.children, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'parent_id' }) // parent_id INT REFERENCES...
-  parent: CompanyCategory;
+  // @ManyToOne(() => CompanyCategory, (cat) => cat.children, { onDelete: 'SET NULL' })
+  // @JoinColumn({ name: 'parent_id' }) // parent_id INT REFERENCES...
+  // parent: CompanyCategory;
 
-  @OneToMany(() => CompanyCategory, (cat) => cat.parent)
-  children: CompanyCategory[];
+  // @OneToMany(() => CompanyCategory, (cat) => cat.parent)
+  // children: CompanyCategory[];
 
   @Column() // name VARCHAR(255) NOT NULL
   name: string;
@@ -42,6 +42,6 @@ export class CompanyCategory {
   updatedAt: Date;
 
   // --- Quan hệ (từ Bảng 6) ---
-  @ManyToMany(() => Employer, (employer) => employer.industries)
-  employers: Employer[];
+  // @ManyToMany(() => Employer, (employer) => employer.industries)
+  // employers: Employer[];
 }

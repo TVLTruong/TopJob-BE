@@ -8,7 +8,7 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import { Job } from '../../jobs/entities/job.entity';
+// import { Job } from '../../jobs/entities/job.entity';
 
 @Entity('jobs_categories')
 export class JobCategory {
@@ -38,6 +38,6 @@ export class JobCategory {
   updatedAt: Date;
 
   // --- Quan hệ ---
-  @OneToMany(() => Job, (job) => job.category)
-  jobs: Job[];
+  // @OneToMany(() => Job, (job) => job.category)
+  // jobs: Job[];
 }

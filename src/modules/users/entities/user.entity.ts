@@ -10,7 +10,7 @@ import {
 import { UserRole } from '../../../common/enums/user-role.enum'; // 👈 Import
 import { UserStatus } from '../../../common/enums/user-status.enum'; // 👈 Import
 import { Candidate } from '../../candidates/entities/candidate.entity';
-// import { Employer } from '../../employers/entities/employer.entity';
+import { Employer } from '../../employers/entities/employer.entity';
 import { OtpVerification } from '../../auth/entities/otp-verification.entity';
 // import { PasswordResetToken } from '../../auth/entities/password-reset-token.entity';
 
@@ -37,7 +37,7 @@ export class User {
 
   @Column({
     type: 'enum',
-    enum: UserStatus, // 👈 Dùng Enum
+    enum: UserStatus,
     default: UserStatus.PENDING,
   }) // status VARCHAR(20) DEFAULT 'pending' CHECK (...)
   status: UserStatus;
@@ -61,8 +61,8 @@ export class User {
   @OneToOne(() => Candidate, (candidate) => candidate.user)
   candidate: Candidate;
 
-  // @OneToOne(() => Employer, (employer) => employer.user)
-  // employer: Employer;
+  @OneToOne(() => Employer, (employer: Employer) => employer.user)
+  employer: Employer;
 
   @OneToMany(() => OtpVerification, (otp) => otp.user)
   otpVerifications: OtpVerification[];

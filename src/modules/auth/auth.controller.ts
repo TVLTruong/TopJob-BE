@@ -4,6 +4,7 @@ import { RegisterCandidateDto } from './dto/register-candidate.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '../../common/decorators/public.decorator';
+import { RegisterEmployerDto } from './dto/register-employer.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -28,5 +29,12 @@ export class AuthController {
   @HttpCode(200)
   resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto);
+  }
+
+  @Public()
+  @Post('register/employer')
+  @HttpCode(201)
+  registerEmployer(@Body() dto: RegisterEmployerDto) {
+    return this.authService.registerEmployer(dto);
   }
 }

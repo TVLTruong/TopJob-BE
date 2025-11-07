@@ -4,25 +4,26 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  // OneToOne,
-  // JoinColumn,
+  OneToOne,
+  JoinColumn,
   OneToMany,
-  ManyToMany,
-  JoinTable,
+  // ManyToMany,
+  // JoinTable,
 } from 'typeorm';
-// import { User } from '../../users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 import { EmployerLocation } from './employer-location.entity';
-import { CompanyCategory } from '../../company-categories/entities/company-category.entity';
-import { Job } from '../../jobs/entities/job.entity';
+// import { CompanyCategory } from '../../company-categories/entities/company-category.entity';
+// import { Job } from '../../jobs/entities/job.entity';
+import { UserStatus } from '../../../common/enums/user-status.enum';
 
 @Entity('employers')
 export class Employer {
   @PrimaryGeneratedColumn('increment') // id BIGSERIAL PRIMARY KEY
   id: number;
 
-  // @OneToOne(() => User, (user) => user.employer, { onDelete: 'CASCADE' })
-  // @JoinColumn({ name: 'user_id' }) // user_id BIGINT UNIQUE REFERENCES...
-  // user: User;
+  @OneToOne(() => User, (user: User) => user.employer, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' }) // user_id BIGINT UNIQUE REFERENCES...
+  user: User;
 
   @Column({ name: 'full_name' }) // full_name VARCHAR(255) NOT NULL
   fullName: string;
@@ -36,7 +37,7 @@ export class Employer {
   @Column({ type: 'text', nullable: true }) // description TEXT NULL
   description: string;
 
-  @Column({ type: 'text', nullable: true }) // website TEXT NULL
+  @Column({ type: 'text' }) // website TEXT NULL
   website: string;
 
   @Column({ name: 'logo_url', type: 'text', nullable: true }) // logo_url TEXT NULL
@@ -54,8 +55,12 @@ export class Employer {
   @Column({ name: 'is_approved', default: false }) // is_approved BOOLEAN DEFAULT FALSE
   isApproved: boolean;
 
-  @Column({ default: 'pending' }) // status VARCHAR(20) DEFAULT 'pending' CHECK (...)
-  status: 'pending' | 'active' | 'banned';
+  @Column({
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.PENDING,
+  }) // status VARCHAR(20) DEFAULT 'pending' CHECK (...)
+  status: UserStatus;
 
   @CreateDateColumn({ name: 'created_at' }) // created_at TIMESTAMP DEFAULT NOW()
   createdAt: Date;
@@ -67,15 +72,15 @@ export class Employer {
   @OneToMany(() => EmployerLocation, (loc) => loc.employer)
   locations: EmployerLocation[];
 
-  @OneToMany(() => Job, (job) => job.employer)
-  jobs: Job[];
+  // @OneToMany(() => Job, (job) => job.employer)
+  // jobs: Job[];
 
-  // Bảng 6: employer_industries (n-n)
-  @ManyToMany(() => CompanyCategory, (cat) => cat.employers)
-  @JoinTable({
-    name: 'employer_industries',
-    joinColumn: { name: 'employer_id' },
-    inverseJoinColumn: { name: 'category_id' },
-  })
-  industries: CompanyCategory[];
+  // // Bảng 6: employer_industries (n-n)
+  // @ManyToMany(() => CompanyCategory, (cat) => cat.employers)
+  // @JoinTable({
+  //   name: 'employer_industries',
+  //   joinColumn: { name: 'employer_id' },
+  //   inverseJoinColumn: { name: 'category_id' },
+  // })
+  // industries: CompanyCategory[];
 }

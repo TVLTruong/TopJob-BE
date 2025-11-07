@@ -5,11 +5,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
-  OneToMany,
+  // OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { Employer } from './employer.entity';
-import { Job } from '../../jobs/entities/job.entity';
+// import { Job } from '../../jobs/entities/job.entity';
 
 @Entity('employer_locations')
 export class EmployerLocation {
@@ -39,6 +39,6 @@ export class EmployerLocation {
   updatedAt: Date;
 
   // --- Quan hệ ---
-  @OneToMany(() => Job, (job) => job.location)
-  jobs: Job[];
+  // @OneToMany(() => Job, (job) => job.location)
+  // jobs: Job[];
 }

@@ -4,34 +4,34 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  OneToMany,
-  JoinColumn,
+  // ManyToOne,
+  // OneToMany,
+  // JoinColumn,
 } from 'typeorm';
-import { Employer } from '../../employers/entities/employer.entity';
-import { JobCategory } from '../../job-categories/entities/job-category.entity';
-import { EmployerLocation } from '../../employers/entities/employer-location.entity';
-import { Application } from '../../applications/entities/application.entity';
-import { SavedJob } from '../../saved-jobs/entities/saved-job.entity';
+// import { Employer } from '../../employers/entities/employer.entity';
+// import { JobCategory } from '../../job-categories/entities/job-category.entity';
+// import { EmployerLocation } from '../../employers/entities/employer-location.entity';
+// import { Application } from '../../applications/entities/application.entity';
+// import { SavedJob } from '../../saved-jobs/entities/saved-job.entity';
 
 @Entity('jobs')
 export class Job {
   @PrimaryGeneratedColumn('increment') // id SERIAL PRIMARY KEY
   id: number;
 
-  @ManyToOne(() => Employer, (emp) => emp.jobs, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'employer_id' }) // employer_id INT NOT NULL REFERENCES...
-  employer: Employer;
+  // @ManyToOne(() => Employer, (emp) => emp.jobs, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'employer_id' }) // employer_id INT NOT NULL REFERENCES...
+  // employer: Employer;
 
-  @ManyToOne(() => JobCategory, (cat) => cat.jobs, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'category_id' }) // category_id INT REFERENCES...
-  category: JobCategory;
+  // @ManyToOne(() => JobCategory, (cat) => cat.jobs, { onDelete: 'SET NULL' })
+  // @JoinColumn({ name: 'category_id' }) // category_id INT REFERENCES...
+  // category: JobCategory;
 
-  @ManyToOne(() => EmployerLocation, (loc) => loc.jobs, {
-    onDelete: 'SET NULL',
-  })
-  @JoinColumn({ name: 'location_id' }) // location_id INT REFERENCES...
-  location: EmployerLocation;
+  // @ManyToOne(() => EmployerLocation, (loc) => loc.jobs, {
+  //   onDelete: 'SET NULL',
+  // })
+  // @JoinColumn({ name: 'location_id' }) // location_id INT REFERENCES...
+  // location: EmployerLocation;
 
   @Column() // title VARCHAR(255) NOT NULL
   title: string;
@@ -120,9 +120,9 @@ export class Job {
   updatedAt: Date;
 
   // --- Quan hệ ---
-  @OneToMany(() => Application, (app) => app.job)
-  applications: Application[];
+  // @OneToMany(() => Application, (app) => app.job)
+  // applications: Application[];
 
-  @OneToMany(() => SavedJob, (savedJob) => savedJob.job)
-  savedJobs: SavedJob[];
+  // @OneToMany(() => SavedJob, (savedJob) => savedJob.job)
+  // savedJobs: SavedJob[];
 }

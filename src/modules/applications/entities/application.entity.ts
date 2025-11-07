@@ -4,11 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
+  // ManyToOne,
+  // JoinColumn,
 } from 'typeorm';
 // import { Candidate } from '../../candidates/entities/candidate.entity';
-import { Job } from '../../jobs/entities/job.entity';
+// import { Job } from '../../jobs/entities/job.entity';
 
 @Entity('applications')
 export class Application {
@@ -19,9 +19,9 @@ export class Application {
   // @JoinColumn({ name: 'candidate_id' }) // candidate_id INT NOT NULL REFERENCES...
   // candidate: Candidate;
 
-  @ManyToOne(() => Job, (job) => job.applications, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'job_id' }) // job_id INT NOT NULL REFERENCES...
-  job: Job;
+  // @ManyToOne(() => Job, (job) => job.applications, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'job_id' }) // job_id INT NOT NULL REFERENCES...
+  // job: Job;
 
   @Column({ name: 'cv_url', type: 'text', nullable: true }) // cv_url TEXT
   cvUrl: string;

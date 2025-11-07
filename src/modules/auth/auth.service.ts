@@ -15,6 +15,9 @@ import { OtpVerification } from './entities/otp-verification.entity';
 import { MailerService } from '@nestjs-modules/mailer';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
+import { RegisterEmployerDto } from './dto/register-employer.dto';
+import { Employer } from '../employers/entities/employer.entity';
+import { EmployerLocation } from '../employers/entities/employer-location.entity';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +26,10 @@ export class AuthService {
     private userRepo: Repository<User>,
     @InjectRepository(Candidate)
     private candidateRepo: Repository<Candidate>,
+    @InjectRepository(Employer)
+    private employerRepo: Repository<Employer>,
+    @InjectRepository(EmployerLocation)
+    private employerLocationRepo: Repository<EmployerLocation>,
     @InjectRepository(OtpVerification)
     private otpRepo: Repository<OtpVerification>,
     private mailerService: MailerService,
@@ -72,6 +79,102 @@ export class AuthService {
       message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác minh.',
       email,
     };
+  }
+
+  // === 2. ĐĂNG KÝ NHÀ TUYỂN DỤNG ===
+  async registerEmployer(dto: RegisterEmployerDto) {
+    const {
+      fullName,
+      workEmail,
+      phone,
+      workTitle,
+      companyName,
+      city,
+      ward,
+      streetAddress,
+      website,
+    } = dto;
+
+    // Kiểm tra email đã tồn tại
+    const existing = await this.userRepo.findOne({
+      where: { email: workEmail },
+    });
+    if (existing) {
+      throw new BadRequestException('Email đã được sử dụng');
+    }
+
+    // Tạo password tạm thời
+    const tempPassword = this.generateTempPassword();
+    const hashedPassword = await bcrypt.hash(tempPassword, 12);
+
+    // Tạo user (user.status: pending, is verified: false)
+    const user = this.userRepo.create({
+      email: workEmail,
+      password_hash: hashedPassword,
+      role: UserRole.EMPLOYER,
+      is_verified: false,
+      status: UserStatus.PENDING,
+    });
+    const savedUser = await this.userRepo.save(user);
+
+    // Tạo employer
+    const employer = this.employerRepo.create({
+      user: savedUser,
+      fullName: fullName,
+      contactPhone: phone,
+      contactEmail: workEmail,
+      workTitle: workTitle,
+      companyName: companyName,
+      website: website,
+      isApproved: false,
+      status: UserStatus.PENDING,
+    });
+    const savedEmployer = await this.employerRepo.save(employer);
+
+    // Tạo employer location (headquarters)
+    const employerLocation = this.employerLocationRepo.create({
+      employer: savedEmployer,
+      city,
+      ward,
+      streetAddress,
+      isHeadquarters: true,
+    });
+    await this.employerLocationRepo.save(employerLocation);
+
+    await this.sendEmployerPendingEmail(workEmail, companyName, fullName);
+
+    return {
+      success: true,
+      message:
+        'Đăng ký thành công! Vui lòng chờ phê duyệt từ quản trị viên (24-48 giờ).',
+      email: workEmail,
+      estimatedTime: '24-48 giờ',
+    };
+  }
+
+  private async sendEmployerPendingEmail(
+    email: string,
+    companyName: string,
+    fullName: string,
+  ) {
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: 'Đăng ký nhà tuyển dụng TopJob - Chờ phê duyệt',
+        template: 'employer-pending', // src/templates/employer-pending.hbs
+        context: {
+          companyName,
+          fullName,
+          estimatedTime: '24-48 giờ',
+        },
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  }
+
+  private generateTempPassword(): string {
+    return Math.random().toString(36).slice(-6);
   }
 
   // === 2. XÁC MINH OTP ===
