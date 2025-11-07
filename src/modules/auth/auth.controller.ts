@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterCandidateDto } from './dto/register-candidate.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('auth')
@@ -25,7 +26,7 @@ export class AuthController {
   @Public()
   @Post('resend-otp')
   @HttpCode(200)
-  resendOtp(@Body('email') email: string) {
-    return this.authService.resendOtp(email);
+  resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto);
   }
 }

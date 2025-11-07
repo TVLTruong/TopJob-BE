@@ -10,6 +10,7 @@ import { User } from '../../users/entities/user.entity';
 
 @Entity('otp_verifications')
 @Index(['email']) // Tăng tốc tìm kiếm
+@Index(['created_at'])
 export class OtpVerification {
   @PrimaryGeneratedColumn()
   id: number;

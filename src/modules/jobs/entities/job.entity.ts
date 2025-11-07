@@ -27,7 +27,9 @@ export class Job {
   @JoinColumn({ name: 'category_id' }) // category_id INT REFERENCES...
   category: JobCategory;
 
-  @ManyToOne(() => EmployerLocation, (loc) => loc.jobs, { onDelete: 'SET NULL' })
+  @ManyToOne(() => EmployerLocation, (loc) => loc.jobs, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'location_id' }) // location_id INT REFERENCES...
   location: EmployerLocation;
 
@@ -46,10 +48,22 @@ export class Job {
   @Column({ name: 'nice_to_have', type: 'text', nullable: true }) // nice_to_have TEXT
   niceToHave: string;
 
-  @Column({ name: 'salary_min', type: 'numeric', precision: 12, scale: 2, nullable: true }) // salary_min NUMERIC(12,2)
+  @Column({
+    name: 'salary_min',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  }) // salary_min NUMERIC(12,2)
   salaryMin: number;
 
-  @Column({ name: 'salary_max', type: 'numeric', precision: 12, scale: 2, nullable: true }) // salary_max NUMERIC(12,2)
+  @Column({
+    name: 'salary_max',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  }) // salary_max NUMERIC(12,2)
   salaryMax: number;
 
   @Column({ name: 'salary_currency', nullable: true }) // salary_currency VARCHAR(10)
@@ -70,7 +84,12 @@ export class Job {
   @Column({ name: 'positions_available', default: 1 }) // positions_available INT DEFAULT 1
   positionsAvailable: number;
 
-  @Column({ name: 'required_skills', type: 'text', array: true, nullable: true }) // required_skills TEXT[]
+  @Column({
+    name: 'required_skills',
+    type: 'text',
+    array: true,
+    nullable: true,
+  }) // required_skills TEXT[]
   requiredSkills: string[];
 
   @Column({ type: 'text', array: true, nullable: true }) // benefits TEXT[]

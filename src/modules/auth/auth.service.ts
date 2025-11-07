@@ -8,6 +8,7 @@ import { Repository, MoreThan } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { RegisterCandidateDto } from './dto/register-candidate.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { User } from '../users/entities/user.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { OtpVerification } from './entities/otp-verification.entity';
@@ -112,8 +113,10 @@ export class AuthService {
   }
 
   // === GỬI LẠI OTP ===
-  async resendOtp(email: string) {
-    const user = await this.userRepo.findOne({ where: { email } });
+  async resendOtp(
+    dto: ResendOtpDto,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.userRepo.findOne({ where: { email: dto.email } });
     if (!user || user.is_verified) {
       throw new BadRequestException('Email không hợp lệ hoặc đã được xác minh');
     }
@@ -122,17 +125,18 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await this.otpRepo.update(
-      { email, isUsed: false },
+      { email: dto.email, isUsed: false },
       { isUsed: true, usedAt: new Date() },
     );
 
     await this.otpRepo.save({
-      email,
+      email: dto.email,
       otp,
-      expires_at: expiresAt,
+      expiresAt,
+      isUsed: false,
     });
 
-    await this.sendOtpEmail(email, otp);
+    await this.sendOtpEmail(dto.email, otp);
 
     return { success: true, message: 'Đã gửi lại mã OTP' };
   }
@@ -143,7 +147,6 @@ export class AuthService {
   }
 
   private async sendOtpEmail(email: string, otp: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await this.mailerService.sendMail({
       to: email,
       subject: 'Mã xác minh TopJob',
