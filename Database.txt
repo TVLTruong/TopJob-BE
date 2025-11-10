@@ -1,4 +1,5 @@
-users (
+-- 1. Bảng users
+CREATE TABLE users (
     id                  BIGSERIAL PRIMARY KEY,
     email               VARCHAR(255) UNIQUE NOT NULL,
     password_hash       VARCHAR(255) NOT NULL,
@@ -13,9 +14,10 @@ users (
     updated_at          TIMESTAMP DEFAULT NOW()
 );
 
-candidates (
+-- 2. Bảng candidates
+CREATE TABLE candidates (
     id                  BIGSERIAL PRIMARY KEY,
-    user_id             BIGINT UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    user_id             BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
     full_name           VARCHAR(255) NOT NULL,
     gender              VARCHAR(10) CHECK (gender IN ('male', 'female', 'other')),
@@ -39,10 +41,12 @@ candidates (
     updated_at          TIMESTAMP DEFAULT NOW()
 );
 
-employers (
+-- 3. Bảng employers
+CREATE TABLE employers (
     id                  BIGSERIAL PRIMARY KEY,
-    user_id             BIGINT UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    user_id             BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
+    full_name           VARCHAR(255) NOT NULL,
     company_name        VARCHAR(255) NOT NULL,
     work_title          VARCHAR(255) NULL,
     description         TEXT NULL,
@@ -50,14 +54,9 @@ employers (
 
     logo_url            TEXT NULL,
     founded_year        INT NULL,
-    company_size        VARCHAR(50) NULL CHECK (company_size IN ('1-10','11-50','51-200','201-500','500+')),
-    tax_code            VARCHAR(50) UNIQUE NULL,
 
     contact_email       VARCHAR(255),
     contact_phone       VARCHAR(20),
-
-    address_city        VARCHAR(100),
-    address_country     VARCHAR(100),
 
     is_approved         BOOLEAN DEFAULT FALSE,   -- do admin duyệt
     status              VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','active','banned')),
@@ -66,29 +65,21 @@ employers (
     updated_at          TIMESTAMP DEFAULT NOW()
 );
 
-
 -- 4. Bảng employer_locations
 CREATE TABLE employer_locations (
-    id SERIAL PRIMARY KEY,
-    employer_id INT NOT NULL REFERENCES employers(id) ON DELETE CASCADE,
-    office_name VARCHAR(255),
+    id BIGSERIAL PRIMARY KEY,
+    employer_id BIGINT NOT NULL REFERENCES employers(id) ON DELETE CASCADE,
     is_headquarters BOOLEAN DEFAULT false,
     street_address VARCHAR(255),
     ward VARCHAR(255),
-    district VARCHAR(255),
     city VARCHAR(255),
-    country VARCHAR(255),
-    postal_code VARCHAR(20),
-    latitude NUMERIC(9,6),
-    longitude NUMERIC(9,6),
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- 5. Bảng companies_categories
 CREATE TABLE companies_categories (
-    id SERIAL PRIMARY KEY,
-    parent_id INT REFERENCES companies_categories(id) ON DELETE SET NULL,
+    id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
@@ -97,32 +88,20 @@ CREATE TABLE companies_categories (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 6. Bảng employer_industries (n-n)
-CREATE TABLE employer_industries (
-    employer_id INT NOT NULL REFERENCES employers(id) ON DELETE CASCADE,
-    category_id INT NOT NULL REFERENCES companies_categories(id) ON DELETE CASCADE,
-    PRIMARY KEY (employer_id, category_id)
-);
-
--- 7. Bảng jobs_categories
+-- 6. Bảng jobs_categories
 CREATE TABLE jobs_categories (
-    id SERIAL PRIMARY KEY,
-    parent_id INT REFERENCES jobs_categories(id) ON DELETE SET NULL,
+    id BIGSERIAL PRIMARY KEY,
+    parent_id BIGINT REFERENCES jobs_categories(id) ON DELETE SET NULL,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    icon VARCHAR(255),
-    order_index INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 8. Bảng jobs
+-- 7. Bảng jobs
 CREATE TABLE jobs (
-    id SERIAL PRIMARY KEY,
-    employer_id INT NOT NULL REFERENCES employers(id) ON DELETE CASCADE,
-    category_id INT REFERENCES jobs_categories(id) ON DELETE SET NULL,
+    id BIGSERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
@@ -132,7 +111,6 @@ CREATE TABLE jobs (
     salary_max NUMERIC(12,2),
     salary_currency VARCHAR(10),
     is_negotiable BOOLEAN DEFAULT false,
-    location_id INT REFERENCES employer_locations(id) ON DELETE SET NULL,
     location_text VARCHAR(255),
     job_type VARCHAR(50), -- full-time, part-time, contract...
     experience_level VARCHAR(50),
@@ -142,7 +120,6 @@ CREATE TABLE jobs (
     status VARCHAR(20) DEFAULT 'draft', -- draft | published | closed
     deadline TIMESTAMP,
     published_at TIMESTAMP,
-    view_count INT DEFAULT 0,
     application_count INT DEFAULT 0,
     is_featured BOOLEAN DEFAULT false,
     is_urgent BOOLEAN DEFAULT false,
@@ -150,11 +127,9 @@ CREATE TABLE jobs (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 9. Bảng applications
+-- 8. Bảng applications
 CREATE TABLE applications (
-    id SERIAL PRIMARY KEY,
-    candidate_id INT NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
-    job_id INT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    id BIGSERIAL PRIMARY KEY,
     cv_url TEXT,
     cover_letter TEXT,
     status VARCHAR(50) DEFAULT 'applied', -- applied | reviewed | interviewed | hired | rejected
@@ -169,31 +144,35 @@ CREATE TABLE applications (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 10. Bảng saved_jobs
+-- 9. Bảng saved_jobs
 CREATE TABLE saved_jobs (
-    id SERIAL PRIMARY KEY,
-    candidate_id INT NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
-    job_id INT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-    saved_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(candidate_id, job_id)
+    id BIGSERIAL PRIMARY KEY,
+    candidate_id BIGINT NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+    saved_at TIMESTAMP DEFAULT NOW()
 );
 
--- 11. Bảng email_verification_tokens
-CREATE TABLE email_verification_tokens (
+-- 10. Bảng otp_verifications
+CREATE TABLE otp_verifications (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    otp VARCHAR(6) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
+    is_used BOOLEAN DEFAULT false,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     used_at TIMESTAMP
 );
 
--- 12. Bảng password_reset_tokens
+-- 11. Bảng password_reset_tokens
 CREATE TABLE password_reset_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     used_at TIMESTAMP
 );
+
+-- Indexes
+CREATE INDEX idx_otp_verifications_email ON otp_verifications(email);
+CREATE INDEX idx_otp_verifications_created_at ON otp_verifications(created_at);

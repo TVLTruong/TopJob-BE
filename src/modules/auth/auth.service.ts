@@ -2,7 +2,8 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
-  UnauthorizedException, 
+  UnauthorizedException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,8 +21,8 @@ import { UserStatus } from '../../common/enums/user-status.enum';
 import { RegisterEmployerDto } from './dto/register-employer.dto';
 import { Employer } from '../employers/entities/employer.entity';
 import { EmployerLocation } from '../employers/entities/employer-location.entity';
-import { JwtService } from '@nestjs/jwt'; 
-import { ConfigService } from '@nestjs/config'; 
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/login.dto';
 import type { RequestUser } from '../../common/interfaces/request-user.interface'; // 👈 THÊM
 
@@ -41,7 +42,7 @@ export class AuthService {
     private mailerService: MailerService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly logger = new Logger(AuthService.name)
+    private readonly logger = new Logger(AuthService.name),
   ) {}
 
   // === 1. ĐĂNG KÝ ỨNG VIÊN ===
@@ -49,14 +50,16 @@ export class AuthService {
     const { fullName, email, password } = dto;
 
     // Kiểm tra email đã tồn tại
-    const existing = await this.userRepo.findOne({ where: { email } });
+    const existing = await this.userRepo.findOne({
+      where: { email: email.toLowerCase() },
+    });
     if (existing) {
       throw new BadRequestException('Email đã được sử dụng');
     }
 
     // Tạo user + candidate trong transaction
     const user = this.userRepo.create({
-      email,
+      email: email.toLowerCase(),
       password_hash: await bcrypt.hash(password, 10),
       role: UserRole.CANDIDATE,
       is_verified: false,
@@ -76,17 +79,17 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
 
     await this.otpRepo.save({
-      email,
+      email: email.toLowerCase(),
       otp,
       expiresAt,
     });
 
     // Gửi email
-    await this.sendOtpEmail(email, otp);
+    await this.sendOtpEmail(email.toLowerCase(), otp);
 
     return {
       message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác minh.',
-      email,
+      email: email.toLowerCase(),
     };
   }
 
@@ -106,7 +109,7 @@ export class AuthService {
 
     // Kiểm tra email đã tồn tại
     const existing = await this.userRepo.findOne({
-      where: { email: workEmail },
+      where: { email: workEmail.toLowerCase() },
     });
     if (existing) {
       throw new BadRequestException('Email đã được sử dụng');
@@ -118,7 +121,7 @@ export class AuthService {
 
     // Tạo user (user.status: pending, is verified: false)
     const user = this.userRepo.create({
-      email: workEmail,
+      email: workEmail.toLowerCase(),
       password_hash: hashedPassword,
       role: UserRole.EMPLOYER,
       is_verified: false,
@@ -131,7 +134,7 @@ export class AuthService {
       user: savedUser,
       fullName: fullName,
       contactPhone: phone,
-      contactEmail: workEmail,
+      contactEmail: workEmail.toLowerCase(),
       workTitle: workTitle,
       companyName: companyName,
       website: website,
@@ -156,20 +159,26 @@ export class AuthService {
       success: true,
       message:
         'Đăng ký thành công! Vui lòng chờ phê duyệt từ quản trị viên (24-48 giờ).',
-      email: workEmail,
+      email: workEmail.toLowerCase(),
       estimatedTime: '24-48 giờ',
     };
   }
-  // * 🚀 LOGIC ĐĂNG NHẬP
-  //  */
+
+  // === 3. ĐĂNG NHẬP ===
   async login(dto: LoginDto) {
     this.logger.log(`Login attempt for email: ${dto.email}`);
 
+    const { email, password } = dto;
+
     // 1. Tìm user bằng email (dùng 'this.userRepo' y hệt code của TVLTruong)
-    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    const user = await this.userRepo.findOne({
+      where: { email: email.toLowerCase() },
+    });
     if (!user) {
       throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
     }
+
+    const isFirstLogin = user.last_login_at === null;
 
     // 2. So sánh mật khẩu (dùng 'password_hash' từ Entity đã được 'TVLTruong' update)
     const isMatch = await bcrypt.compare(dto.password, user.password_hash);
@@ -180,29 +189,32 @@ export class AuthService {
     // 3. Kiểm tra trạng thái tài khoản (dùng 'status' từ Entity)
     if (user.status !== UserStatus.ACTIVE) {
       if (user.status === UserStatus.PENDING) {
-        throw new UnauthorizedException('Tài khoản đang chờ phê duyệt/xác minh');
+        throw new UnauthorizedException(
+          'Tài khoản đang chờ phê duyệt/xác minh',
+        );
       }
       if (user.status === UserStatus.BANNED) {
         throw new UnauthorizedException('Tài khoản đã bị khóa');
       }
     }
-    
-    // 3b. Kiểm tra 'is_verified' (từ logic OTP của TVLTruong)
-    if (!user.is_verified) {
-      throw new UnauthorizedException('Tài khoản chưa được xác minh OTP');
-    }
+
+    // // 3b. Kiểm tra 'is_verified' (từ logic OTP của TVLTruong)
+    // if (!user.is_verified) {
+    //   throw new UnauthorizedException('Tài khoản chưa được xác minh OTP');
+    // }
 
     // 4. Cập nhật last_login_at (dùng 'last_login_at' từ Entity)
     user.last_login_at = new Date();
     await this.userRepo.save(user); // 👈 (AuthService tự save, không cần UsersService)
 
     // 5. Tạo Payload (Nội dung Token)
-    const payload: RequestUser = { // (Dùng interface RequestUser)
+    const payload: RequestUser = {
+      // (Dùng interface RequestUser)
       sub: user.id,
       email: user.email,
       role: user.role,
     };
-    
+
     // 6. Tạo và trả về Token
     return {
       access_token: await this.jwtService.signAsync(payload),

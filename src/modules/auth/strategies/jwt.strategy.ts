@@ -5,10 +5,14 @@ import { ConfigService } from '@nestjs/config'; // 👈 Dùng để đọc .env
 import type { RequestUser } from '../../../common/interfaces/request-user.interface';
 import { UsersService } from '../../users/users.service';
 import { UserStatus } from '../../../common/enums/user-status.enum'; // 👈 Import Enum
-
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
     private readonly configService: ConfigService,
     private readonly usersService: UsersService, // 👈 Để check user
   ) {
@@ -34,12 +38,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Nếu không tìm thấy user (ví dụ: user bị xóa)
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Tài khoản không tồn tại');
     }
-    
-    // Nếu user bị ban
+    // Nếu user không active
+    if (user.status !== UserStatus.PENDING && !user.employer?.isApproved) {
+      throw new UnauthorizedException('Hồ sơ của bạn chưa được phê duyệt');
+    }
+
+    // Nếu user bị ban (admin khóa tài khoản)
     if (user.status === UserStatus.BANNED) {
-      throw new UnauthorizedException('User has been banned');
+      throw new UnauthorizedException('Tài khoản đã bị khóa');
     }
 
     // 2. Token OK, User OK. Gắn 'payload' vào req.user
