@@ -18,6 +18,7 @@ import { OtpVerification } from './entities/otp-verification.entity';
 import { MailerService } from '@nestjs-modules/mailer';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
+import { EmployerProfileStatus } from '../../common/enums/employer-status.enum';
 import { RegisterEmployerDto } from './dto/register-employer.dto';
 import { Employer } from '../employers/entities/employer.entity';
 import { EmployerLocation } from '../employers/entities/employer-location.entity';
@@ -119,13 +120,12 @@ export class AuthService {
     const tempPassword = this.generateTempPassword();
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
-    // Tạo user (user.status: pending, is verified: false)
+    // Tạo user (user.status: verified)
     const user = this.userRepo.create({
       email: workEmail.toLowerCase(),
       password_hash: hashedPassword,
       role: UserRole.EMPLOYER,
-      is_verified: false,
-      status: UserStatus.PENDING,
+      status: UserStatus.VERIFIED,
     });
     const savedUser = await this.userRepo.save(user);
 
@@ -138,8 +138,7 @@ export class AuthService {
       workTitle: workTitle,
       companyName: companyName,
       website: website,
-      isApproved: false,
-      status: UserStatus.PENDING,
+      status: EmployerProfileStatus.PENDING_APPROVAL,
     });
     const savedEmployer = await this.employerRepo.save(employer);
 
@@ -152,6 +151,9 @@ export class AuthService {
       isHeadquarters: true,
     });
     await this.employerLocationRepo.save(employerLocation);
+
+    // Xác thực email nhà tuyển dụng bằng OTP
+    await this.sendOtpEmail(workEmail.toLowerCase(), tempPassword);
 
     await this.sendEmployerPendingEmail(workEmail, companyName, fullName);
 
@@ -250,6 +252,7 @@ export class AuthService {
   async verifyOtp(dto: VerifyOtpDto) {
     const { email, otp } = dto;
 
+    // Tìm OTP hợp lệ
     const record = await this.otpRepo.findOne({
       where: {
         email,
@@ -267,8 +270,11 @@ export class AuthService {
     const user = await this.userRepo.findOne({ where: { email } });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
-    user.is_verified = true;
-    user.status = UserStatus.ACTIVE;
+    if (user.role === UserRole.CANDIDATE) {
+      user.status = UserStatus.ACTIVE;
+    } else if (user.role === UserRole.EMPLOYER) {
+      user.status = UserStatus.PENDING;
+    }
     user.email_verified_at = new Date();
     await this.userRepo.save(user);
 
@@ -278,7 +284,7 @@ export class AuthService {
     await this.otpRepo.save(record);
 
     return {
-      message: 'Xác minh thành công! Bạn có thể đăng nhập.',
+      message: 'Xác minh thành công!',
       email: user.email,
       role: user.role,
     };
@@ -289,7 +295,7 @@ export class AuthService {
     dto: ResendOtpDto,
   ): Promise<{ success: boolean; message: string }> {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
-    if (!user || user.is_verified) {
+    if (!user || user.status === UserStatus.VERIFIED) {
       throw new BadRequestException('Email không hợp lệ hoặc đã được xác minh');
     }
 

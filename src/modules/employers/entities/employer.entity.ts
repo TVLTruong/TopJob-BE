@@ -14,7 +14,7 @@ import { User } from '../../users/entities/user.entity';
 import { EmployerLocation } from './employer-location.entity';
 // import { CompanyCategory } from '../../company-categories/entities/company-category.entity';
 // import { Job } from '../../jobs/entities/job.entity';
-import { UserStatus } from '../../../common/enums/user-status.enum';
+import { EmployerProfileStatus } from '../../../common/enums/employer-status.enum';
 
 @Entity('employers')
 export class Employer {
@@ -52,15 +52,12 @@ export class Employer {
   @Column({ name: 'contact_phone', nullable: true }) // contact_phone VARCHAR(20)
   contactPhone: string;
 
-  @Column({ name: 'is_approved', default: false }) // is_approved BOOLEAN DEFAULT FALSE
-  isApproved: boolean;
-
   @Column({
     type: 'enum',
-    enum: UserStatus,
-    default: UserStatus.PENDING,
-  }) // status VARCHAR(20) DEFAULT 'pending' CHECK (...)
-  status: UserStatus;
+    enum: EmployerProfileStatus,
+    default: EmployerProfileStatus.DRAFT,
+  }) // status VARCHAR(20) DEFAULT 'draft' CHECK (...)
+  status: EmployerProfileStatus;
 
   @CreateDateColumn({ name: 'created_at' }) // created_at TIMESTAMP DEFAULT NOW()
   createdAt: Date;

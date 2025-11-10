@@ -1,7 +1,7 @@
-// Dùng để định nghĩa cột 'status'
+// Dùng để định nghĩa cột 'status' trong bảng 'users'
 export enum UserStatus {
   PENDING = 'pending',
-  VERIFIED = 'verified', // trạng thái đã xác thực chờ duyệt của employer
+  VERIFIED = 'pending_email_verification', // Chờ xác minh email
   ACTIVE = 'active',
   BANNED = 'banned',
 }

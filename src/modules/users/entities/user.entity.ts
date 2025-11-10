@@ -32,9 +32,6 @@ export class User {
   }) // role VARCHAR(20) NOT NULL CHECK (...)
   role: UserRole;
 
-  @Column({ name: 'is_verified', default: false }) // is_verified BOOLEAN DEFAULT FALSE
-  is_verified: boolean;
-
   @Column({
     type: 'enum',
     enum: UserStatus,
