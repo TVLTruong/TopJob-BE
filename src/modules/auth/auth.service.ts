@@ -63,8 +63,7 @@ export class AuthService {
       email: email.toLowerCase(),
       password_hash: await bcrypt.hash(password, 10),
       role: UserRole.CANDIDATE,
-      is_verified: false,
-      status: UserStatus.PENDING,
+      status: UserStatus.VERIFIED,
     });
 
     const savedUser = await this.userRepo.save(user);
@@ -89,7 +88,7 @@ export class AuthService {
     await this.sendOtpEmail(email.toLowerCase(), otp);
 
     return {
-      message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác minh.',
+      message: 'Đăng ký thành công.',
       email: email.toLowerCase(),
     };
   }
