@@ -18,7 +18,7 @@ import { OtpVerification } from './entities/otp-verification.entity';
 import { MailerService } from '@nestjs-modules/mailer';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
-import { EmployerProfileStatus } from '../../common/enums/employer-status.enum';
+import { EmployerProfileStatus } from '../../common/enums/profile-status.enum';
 import { RegisterEmployerDto } from './dto/register-employer.dto';
 import { Employer } from '../employers/entities/employer.entity';
 import { EmployerLocation } from '../employers/entities/employer-location.entity';

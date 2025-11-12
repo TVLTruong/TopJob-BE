@@ -14,7 +14,7 @@ import { User } from '../../users/entities/user.entity';
 import { EmployerLocation } from './employer-location.entity';
 // import { CompanyCategory } from '../../company-categories/entities/company-category.entity';
 // import { Job } from '../../jobs/entities/job.entity';
-import { EmployerProfileStatus } from '../../../common/enums/employer-status.enum';
+import { EmployerProfileStatus } from '../../../common/enums/profile-status.enum';
 
 @Entity('employers')
 export class Employer {
