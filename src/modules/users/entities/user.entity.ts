@@ -7,8 +7,8 @@ import {
   OneToOne,
   OneToMany,
 } from 'typeorm';
-import { UserRole } from '../../../common/enums/user-role.enum'; // 👈 Import
-import { UserStatus } from '../../../common/enums/user-status.enum'; // 👈 Import
+import { UserRole } from '../../../common/enums/user-role.enum';
+import { UserStatus } from '../../../common/enums/user-status.enum';
 import { Candidate } from '../../candidates/entities/candidate.entity';
 import { Employer } from '../../employers/entities/employer.entity';
 import { OtpVerification } from '../../auth/entities/otp-verification.entity';

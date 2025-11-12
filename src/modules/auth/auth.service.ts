@@ -3,7 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
-  ForbiddenException,
+  // ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,7 +25,7 @@ import { EmployerLocation } from '../employers/entities/employer-location.entity
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/login.dto';
-import type { RequestUser } from '../../common/interfaces/request-user.interface'; // 👈 THÊM
+import type { RequestUser } from '../../common/interfaces/request-user.interface';
 
 @Injectable()
 export class AuthService {
