@@ -1,178 +1,516 @@
--- 1. Bảng users
+-- =====================================================
+-- TopJob Database Schema - Generated from TypeORM Entities
+-- PostgreSQL 14+
+-- Date: November 14, 2025
+-- =====================================================
+
+-- =====================================================
+-- ENUMS (Create Custom Types)
+-- =====================================================
+
+-- User Enums
+CREATE TYPE user_role AS ENUM ('candidate', 'employer', 'admin');
+CREATE TYPE user_status AS ENUM ('pending_email_verification', 'pending_profile_completion', 'pending_approval', 'active', 'banned');
+
+-- Candidate Enums
+CREATE TYPE gender AS ENUM ('male', 'female', 'other');
+CREATE TYPE education_level AS ENUM ('high_school', 'associate_degree', 'bachelor_degree', 'master_degree', 'doctoral_degree', 'other');
+CREATE TYPE experience_level AS ENUM ('intern', 'fresher', 'junior', 'middle', 'senior', 'lead', 'manager');
+
+-- Employer Enums
+CREATE TYPE employer_status AS ENUM ('pending_approval', 'active', 'banned');
+CREATE TYPE employer_profile_status AS ENUM ('approved', 'pending_edit_approval');
+CREATE TYPE company_size AS ENUM ('startup', 'small', 'medium', 'large', 'enterprise');
+
+-- Job Enums
+CREATE TYPE job_status AS ENUM ('draft', 'pending_approval', 'active', 'expired', 'closed', 'hidden', 'rejected', 'removed_by_admin');
+CREATE TYPE job_type AS ENUM ('full_time', 'part_time', 'freelance', 'internship', 'remote');
+
+-- Application Enums
+CREATE TYPE application_status AS ENUM ('new', 'viewed', 'shortlisted', 'rejected', 'hired', 'withdrawn');
+
+-- Approval Enums
+CREATE TYPE approval_action AS ENUM ('approved', 'rejected');
+CREATE TYPE approval_target_type AS ENUM ('employer_profile', 'employer_profile_edit', 'job_post');
+
+-- OTP Enums
+CREATE TYPE otp_purpose AS ENUM ('email_verification', 'password_reset', 'email_change');
+
+
+-- =====================================================
+-- 1. USERS TABLE
+-- Main authentication and authorization entity
+-- Use Cases: UCREG01-03, UCAUTH01-03
+-- =====================================================
 CREATE TABLE users (
     id                  BIGSERIAL PRIMARY KEY,
     email               VARCHAR(255) UNIQUE NOT NULL,
     password_hash       VARCHAR(255) NOT NULL,
-    role                VARCHAR(20) NOT NULL CHECK (role IN ('candidate', 'employer', 'admin')),
+    role                user_role NOT NULL,
+    status              user_status NOT NULL DEFAULT 'pending_email_verification',
     is_verified         BOOLEAN DEFAULT FALSE,
-    status              VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'banned')),
-    
     email_verified_at   TIMESTAMP NULL,
     last_login_at       TIMESTAMP NULL,
-
-    created_at          TIMESTAMP DEFAULT NOW(),
-    updated_at          TIMESTAMP DEFAULT NOW()
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at          TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
--- 2. Bảng candidates
+-- Indexes for users table
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role_status ON users(role, status);
+
+
+-- =====================================================
+-- 2. CANDIDATES TABLE
+-- Stores candidate profile information
+-- Use Cases: UCCAN01
+-- =====================================================
 CREATE TABLE candidates (
     id                  BIGSERIAL PRIMARY KEY,
-    user_id             BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-
+    user_id             BIGINT UNIQUE NOT NULL,
     full_name           VARCHAR(255) NOT NULL,
-    gender              VARCHAR(10) CHECK (gender IN ('male', 'female', 'other')),
+    gender              gender NULL,
     date_of_birth       DATE NULL,
     phone_number        VARCHAR(20) NULL,
-
     avatar_url          TEXT NULL,
-    cv_url              TEXT NULL,
     bio                 TEXT NULL,
     personal_url        TEXT NULL,
-
-    address_street      VARCHAR(255),
-    address_district    VARCHAR(100),
-    address_city        VARCHAR(100),
-    address_country     VARCHAR(100),
-
+    
+    -- Address Fields
+    address_street      VARCHAR(255) NULL,
+    address_district    VARCHAR(100) NULL,
+    address_city        VARCHAR(100) NULL,
+    address_country     VARCHAR(100) DEFAULT 'Vietnam',
+    
+    -- Experience & Education
     experience_years    INT DEFAULT 0,
-    education_level     VARCHAR(100) NULL,
-
-    created_at          TIMESTAMP DEFAULT NOW(),
-    updated_at          TIMESTAMP DEFAULT NOW()
+    experience_level    experience_level NULL,
+    education_level     education_level NULL,
+    
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_candidate_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 3. Bảng employers
+-- Indexes for candidates table
+CREATE INDEX idx_candidates_user_id ON candidates(user_id);
+
+
+-- =====================================================
+-- 3. CANDIDATE CVS TABLE
+-- Stores multiple CV files for each candidate
+-- Use Cases: UCCAN02
+-- =====================================================
+CREATE TABLE candidate_cvs (
+    id                  BIGSERIAL PRIMARY KEY,
+    candidate_id        BIGINT NOT NULL,
+    file_name           VARCHAR(255) NOT NULL,
+    file_url            TEXT NOT NULL,
+    file_size           INT NULL,
+    is_default          BOOLEAN DEFAULT FALSE,
+    uploaded_at         TIMESTAMP DEFAULT NOW() NOT NULL,
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_cv_candidate FOREIGN KEY (candidate_id) 
+        REFERENCES candidates(id) ON DELETE CASCADE
+);
+
+-- Indexes for candidate_cvs table
+CREATE INDEX idx_candidate_cvs_candidate_id ON candidate_cvs(candidate_id);
+CREATE UNIQUE INDEX idx_candidate_cvs_default 
+    ON candidate_cvs(candidate_id, is_default) 
+    WHERE is_default = true;
+
+
+-- =====================================================
+-- 4. EMPLOYERS TABLE
+-- Stores employer/company profile information
+-- Use Cases: UCEMP01-02, UCADM01
+-- =====================================================
 CREATE TABLE employers (
     id                  BIGSERIAL PRIMARY KEY,
-    user_id             BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-
+    user_id             BIGINT UNIQUE NOT NULL,
+    
+    -- Contact Person Info
     full_name           VARCHAR(255) NOT NULL,
-    company_name        VARCHAR(255) NOT NULL,
     work_title          VARCHAR(255) NULL,
+    
+    -- Company Info
+    company_name        VARCHAR(255) NOT NULL,
     description         TEXT NULL,
     website             TEXT NULL,
-
+    
+    -- Company Media
     logo_url            TEXT NULL,
+    cover_image_url     TEXT NULL,
+    
+    -- Company Details
     founded_year        INT NULL,
-
-    contact_email       VARCHAR(255),
-    contact_phone       VARCHAR(20),
-
-    is_approved         BOOLEAN DEFAULT FALSE,   -- do admin duyệt
-    status              VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','active','banned')),
-
-    created_at          TIMESTAMP DEFAULT NOW(),
-    updated_at          TIMESTAMP DEFAULT NOW()
+    company_size        company_size NULL,
+    
+    -- Contact Info
+    contact_email       VARCHAR(255) NULL,
+    contact_phone       VARCHAR(20) NULL,
+    linkedln_url        TEXT NULL,
+    facebook_url        TEXT NULL,
+    x_url               TEXT NULL,
+    
+    -- Status Fields
+    is_approved         BOOLEAN DEFAULT FALSE,
+    status              employer_status DEFAULT 'pending_approval',
+    profile_status      employer_profile_status DEFAULT 'approved',
+    
+    -- Benefits
+    benefits            TEXT[] NULL,
+    
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_employer_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 4. Bảng employer_locations
+-- Indexes for employers table
+CREATE INDEX idx_employers_user_id ON employers(user_id);
+CREATE INDEX idx_employers_status ON employers(status);
+CREATE INDEX idx_employers_company_name ON employers(company_name);
+
+
+-- =====================================================
+-- 5. EMPLOYER LOCATIONS TABLE
+-- Stores multiple office locations for each employer
+-- Use Cases: UCEMP01-02, UCEMP03
+-- =====================================================
 CREATE TABLE employer_locations (
-    id BIGSERIAL PRIMARY KEY,
-    employer_id BIGINT NOT NULL REFERENCES employers(id) ON DELETE CASCADE,
-    is_headquarters BOOLEAN DEFAULT false,
-    street_address VARCHAR(255),
-    ward VARCHAR(255),
-    city VARCHAR(255),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    id                  BIGSERIAL PRIMARY KEY,
+    employer_id         BIGINT NOT NULL,
+    is_headquarters     BOOLEAN DEFAULT FALSE,
+    province            VARCHAR(100) NOT NULL,
+    district            VARCHAR(100) NOT NULL,
+    detailed_address    TEXT NOT NULL,
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_location_employer FOREIGN KEY (employer_id) 
+        REFERENCES employers(id) ON DELETE CASCADE
 );
 
--- 5. Bảng companies_categories
+-- Indexes for employer_locations table
+CREATE INDEX idx_employer_locations_employer_id ON employer_locations(employer_id);
+CREATE UNIQUE INDEX idx_employer_locations_headquarters 
+    ON employer_locations(employer_id, is_headquarters) 
+    WHERE is_headquarters = true;
+
+
+-- =====================================================
+-- 6. EMPLOYER PENDING EDITS TABLE
+-- Stores sensitive field changes that require admin approval
+-- Use Cases: UCEMP02, UCADM01
+-- =====================================================
+CREATE TABLE employer_pending_edits (
+    id                  BIGSERIAL PRIMARY KEY,
+    employer_id         BIGINT NOT NULL,
+    field_name          VARCHAR(100) NOT NULL,
+    old_value           TEXT NULL,
+    new_value           TEXT NULL,
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_pending_edit_employer FOREIGN KEY (employer_id) 
+        REFERENCES employers(id) ON DELETE CASCADE
+);
+
+-- Indexes for employer_pending_edits table
+CREATE INDEX idx_employer_pending_edits_employer_id ON employer_pending_edits(employer_id);
+CREATE INDEX idx_employer_pending_edits_field_name ON employer_pending_edits(field_name);
+
+
+-- =====================================================
+-- 7. COMPANY CATEGORIES TABLE
+-- Industry/sector categories for companies
+-- Use Cases: UCADM06, UCGUEST04
+-- =====================================================
 CREATE TABLE companies_categories (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    id                  BIGSERIAL PRIMARY KEY,
+    name                VARCHAR(255) NOT NULL,
+    slug                VARCHAR(255) UNIQUE NOT NULL,
+    description         TEXT NULL,
+    is_active           BOOLEAN DEFAULT TRUE,
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at          TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
--- 6. Bảng jobs_categories
+-- Indexes for companies_categories table
+CREATE INDEX idx_companies_categories_slug ON companies_categories(slug);
+
+
+-- =====================================================
+-- 8. JOB CATEGORIES TABLE
+-- Hierarchical category structure for job posts
+-- Use Cases: UCADM06, UCGUEST01, UCEMP03
+-- Note: TypeORM will create closure table automatically
+-- =====================================================
 CREATE TABLE jobs_categories (
-    id BIGSERIAL PRIMARY KEY,
-    parent_id BIGINT REFERENCES jobs_categories(id) ON DELETE SET NULL,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    id                  BIGSERIAL PRIMARY KEY,
+    parent_id           BIGINT NULL,
+    name                VARCHAR(255) NOT NULL,
+    slug                VARCHAR(255) UNIQUE NOT NULL,
+    is_active           BOOLEAN DEFAULT TRUE,
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_job_category_parent FOREIGN KEY (parent_id) 
+        REFERENCES jobs_categories(id) ON DELETE SET NULL
 );
 
--- 7. Bảng jobs
+-- Indexes for jobs_categories table
+CREATE INDEX idx_jobs_categories_slug ON jobs_categories(slug);
+
+-- Closure table for tree structure (created by TypeORM)
+CREATE TABLE jobs_categories_closure (
+    id_ancestor         BIGINT NOT NULL,
+    id_descendant       BIGINT NOT NULL,
+    
+    PRIMARY KEY (id_ancestor, id_descendant),
+    CONSTRAINT fk_closure_ancestor FOREIGN KEY (id_ancestor) 
+        REFERENCES jobs_categories(id) ON DELETE CASCADE,
+    CONSTRAINT fk_closure_descendant FOREIGN KEY (id_descendant) 
+        REFERENCES jobs_categories(id) ON DELETE CASCADE
+);
+
+
+-- =====================================================
+-- 9. JOBS TABLE
+-- Main job postings table
+-- Use Cases: UCEMP03-04, UCADM02, UCADM05, UCGUEST01
+-- =====================================================
 CREATE TABLE jobs (
-    id BIGSERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    requirements TEXT,
-    nice_to_have TEXT,
-    salary_min NUMERIC(12,2),
-    salary_max NUMERIC(12,2),
-    salary_currency VARCHAR(10),
-    is_negotiable BOOLEAN DEFAULT false,
-    location_text VARCHAR(255),
-    job_type VARCHAR(50), -- full-time, part-time, contract...
-    experience_level VARCHAR(50),
-    positions_available INT DEFAULT 1,
-    required_skills TEXT[], -- array of skills
-    benefits TEXT[],         -- array of benefits
-    status VARCHAR(20) DEFAULT 'draft', -- draft | published | closed
-    deadline TIMESTAMP,
-    published_at TIMESTAMP,
-    application_count INT DEFAULT 0,
-    is_featured BOOLEAN DEFAULT false,
-    is_urgent BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    id                      BIGSERIAL PRIMARY KEY,
+    employer_id             BIGINT NOT NULL,
+    category_id             BIGINT NOT NULL,
+    location_id             BIGINT NOT NULL,
+    
+    title                   VARCHAR(255) NOT NULL,
+    slug                    VARCHAR(255) UNIQUE NOT NULL,
+    description             TEXT NULL,
+    requirements            TEXT NULL,
+    responsibilities        TEXT NULL,
+    nice_to_have            TEXT NULL,
+    
+    -- Salary Info
+    salary_min              NUMERIC(12,2) NULL,
+    salary_max              NUMERIC(12,2) NULL,
+    is_negotiable           BOOLEAN DEFAULT FALSE,
+    
+    -- Job Details
+    job_type                job_type NOT NULL,
+    experience_level        experience_level NULL,
+    positions_available     INT DEFAULT 1,
+    required_skills         TEXT[] NULL,
+    
+    -- Status & Dates
+    status                  job_status DEFAULT 'draft',
+    deadline                TIMESTAMP NULL,
+    published_at            TIMESTAMP NULL,
+    
+    -- Metrics
+    application_count       INT DEFAULT 0,
+    view_count              INT DEFAULT 0,
+    
+    -- Features
+    is_featured             BOOLEAN DEFAULT FALSE,
+    is_urgent               BOOLEAN DEFAULT FALSE,
+    
+    created_at              TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at              TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_job_employer FOREIGN KEY (employer_id) 
+        REFERENCES employers(id) ON DELETE CASCADE,
+    CONSTRAINT fk_job_category FOREIGN KEY (category_id) 
+        REFERENCES jobs_categories(id),
+    CONSTRAINT fk_job_location FOREIGN KEY (location_id) 
+        REFERENCES employer_locations(id)
 );
 
--- 8. Bảng applications
+-- Indexes for jobs table
+CREATE INDEX idx_jobs_employer_id ON jobs(employer_id);
+CREATE INDEX idx_jobs_category_id ON jobs(category_id);
+CREATE INDEX idx_jobs_location_id ON jobs(location_id);
+CREATE INDEX idx_jobs_slug ON jobs(slug);
+CREATE INDEX idx_jobs_status ON jobs(status);
+CREATE INDEX idx_jobs_status_deadline ON jobs(status, deadline);
+CREATE INDEX idx_jobs_published_at ON jobs(published_at);
+
+
+-- =====================================================
+-- 10. APPLICATIONS TABLE
+-- Job applications from candidates
+-- Use Cases: UCCAN04-06, UCEMP05-06
+-- =====================================================
 CREATE TABLE applications (
-    id BIGSERIAL PRIMARY KEY,
-    cv_url TEXT,
-    cover_letter TEXT,
-    status VARCHAR(50) DEFAULT 'applied', -- applied | reviewed | interviewed | hired | rejected
-    status_updated_at TIMESTAMP,
-    employer_note TEXT,
-    rating INT,
-    applied_at TIMESTAMP DEFAULT NOW(),
-    reviewed_at TIMESTAMP,
-    interview_scheduled_at TIMESTAMP,
-    interview_notes TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    id                      BIGSERIAL PRIMARY KEY,
+    candidate_id            BIGINT NOT NULL,
+    job_id                  BIGINT NOT NULL,
+    cv_id                   BIGINT NULL,
+    
+    status                  application_status DEFAULT 'new',
+    status_updated_at       TIMESTAMP NULL,
+    applied_at              TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    created_at              TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at              TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_application_candidate FOREIGN KEY (candidate_id) 
+        REFERENCES candidates(id) ON DELETE CASCADE,
+    CONSTRAINT fk_application_job FOREIGN KEY (job_id) 
+        REFERENCES jobs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_application_cv FOREIGN KEY (cv_id) 
+        REFERENCES candidate_cvs(id) ON DELETE SET NULL,
+    CONSTRAINT unique_application UNIQUE (candidate_id, job_id)
 );
 
--- 9. Bảng saved_jobs
+-- Indexes for applications table
+CREATE INDEX idx_applications_candidate_id ON applications(candidate_id);
+CREATE INDEX idx_applications_job_id ON applications(job_id);
+CREATE INDEX idx_applications_status ON applications(status);
+CREATE INDEX idx_applications_applied_at ON applications(applied_at);
+
+
+-- =====================================================
+-- 11. SAVED JOBS TABLE
+-- Many-to-many relationship for saved jobs
+-- Use Cases: UCCAN03
+-- =====================================================
 CREATE TABLE saved_jobs (
-    id BIGSERIAL PRIMARY KEY,
-    candidate_id BIGINT NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
-    saved_at TIMESTAMP DEFAULT NOW()
+    candidate_id        BIGINT NOT NULL,
+    job_id              BIGINT NOT NULL,
+    saved_at            TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    PRIMARY KEY (candidate_id, job_id),
+    CONSTRAINT fk_saved_job_candidate FOREIGN KEY (candidate_id) 
+        REFERENCES candidates(id) ON DELETE CASCADE,
+    CONSTRAINT fk_saved_job_job FOREIGN KEY (job_id) 
+        REFERENCES jobs(id) ON DELETE CASCADE
 );
 
--- 10. Bảng otp_verifications
+
+-- =====================================================
+-- 12. OTP VERIFICATIONS TABLE
+-- OTP codes for email verification and password reset
+-- Use Cases: UCREG03, UCAUTH03
+-- =====================================================
 CREATE TABLE otp_verifications (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
-    otp VARCHAR(6) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    is_used BOOLEAN DEFAULT false,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    used_at TIMESTAMP
+    id                  SERIAL PRIMARY KEY,
+    email               VARCHAR(255) NOT NULL,
+    otp_code            VARCHAR(6) NOT NULL,
+    purpose             otp_purpose NOT NULL,
+    is_used             BOOLEAN DEFAULT FALSE,
+    is_verified         BOOLEAN DEFAULT FALSE,
+    expires_at          TIMESTAMP NOT NULL,
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    verified_at         TIMESTAMP NULL,
+    user_id             BIGINT NULL,
+    ip_address          INET NULL,
+    user_agent          TEXT NULL,
+    attempt_count       INT DEFAULT 0,
+    
+    CONSTRAINT fk_otp_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT check_attempt_count CHECK (attempt_count <= 5)
 );
 
--- 11. Bảng password_reset_tokens
-CREATE TABLE password_reset_tokens (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token VARCHAR(255) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    used_at TIMESTAMP
-);
-
--- Indexes
+-- Indexes for otp_verifications table
 CREATE INDEX idx_otp_verifications_email ON otp_verifications(email);
+CREATE INDEX idx_otp_verifications_email_purpose ON otp_verifications(email, purpose);
 CREATE INDEX idx_otp_verifications_created_at ON otp_verifications(created_at);
+CREATE INDEX idx_otp_verifications_expires_at ON otp_verifications(expires_at);
+
+
+-- =====================================================
+-- 13. APPROVAL LOGS TABLE
+-- Track admin approval/rejection actions
+-- Use Cases: UCADM01-02
+-- =====================================================
+CREATE TABLE approval_logs (
+    id                  BIGSERIAL PRIMARY KEY,
+    admin_id            BIGINT NOT NULL,
+    target_type         approval_target_type NOT NULL,
+    target_id           BIGINT NOT NULL,
+    action              approval_action NOT NULL,
+    reason              TEXT NULL,
+    created_at          TIMESTAMP DEFAULT NOW() NOT NULL,
+    
+    CONSTRAINT fk_approval_log_admin FOREIGN KEY (admin_id) 
+        REFERENCES users(id)
+);
+
+-- Indexes for approval_logs table
+CREATE INDEX idx_approval_logs_target ON approval_logs(target_type, target_id);
+
+
+-- =====================================================
+-- TRIGGERS FOR UPDATED_AT
+-- =====================================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply triggers to all tables with updated_at
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_candidates_updated_at BEFORE UPDATE ON candidates
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_candidate_cvs_updated_at BEFORE UPDATE ON candidate_cvs
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_employers_updated_at BEFORE UPDATE ON employers
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_employer_locations_updated_at BEFORE UPDATE ON employer_locations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_companies_categories_updated_at BEFORE UPDATE ON companies_categories
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_jobs_categories_updated_at BEFORE UPDATE ON jobs_categories
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON jobs
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_applications_updated_at BEFORE UPDATE ON applications
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+
+-- =====================================================
+-- COMMENTS ON TABLES
+-- =====================================================
+
+COMMENT ON TABLE users IS 'Main user authentication table for all user types';
+COMMENT ON TABLE candidates IS 'Candidate profile information';
+COMMENT ON TABLE candidate_cvs IS 'Multiple CV files for each candidate';
+COMMENT ON TABLE employers IS 'Employer/company profile information';
+COMMENT ON TABLE employer_locations IS 'Multiple office locations per employer';
+COMMENT ON TABLE employer_pending_edits IS 'Tracks pending profile changes requiring approval';
+COMMENT ON TABLE companies_categories IS 'Industry/sector categories for companies';
+COMMENT ON TABLE jobs_categories IS 'Hierarchical job categories with closure table';
+COMMENT ON TABLE jobs IS 'Job postings';
+COMMENT ON TABLE applications IS 'Job applications from candidates to jobs';
+COMMENT ON TABLE saved_jobs IS 'Saved jobs by candidates';
+COMMENT ON TABLE otp_verifications IS 'OTP codes for verification and password reset';
+COMMENT ON TABLE approval_logs IS 'Admin approval/rejection action logs';
+
+
+-- =====================================================
+-- END OF SCHEMA
+-- =====================================================
