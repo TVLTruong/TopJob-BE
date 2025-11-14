@@ -12,7 +12,7 @@ import {
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { UserRole, UserStatus } from '../../common/enums';
-import { Candidate } from '../..database/entities/candidate.entity';
+import { Candidate } from './candidate.entity';
 import { Employer } from './employer.entity';
 import { ApprovalLog } from './approval-log.entity';
 
@@ -65,20 +65,20 @@ export class User {
   updatedAt: Date;
 
   // Relations
-  @OneToOne(() => Candidate, (candidate) => candidate.user, { 
+  @OneToOne(() => Candidate, (candidate) => candidate.user, {
     cascade: true,
-    eager: false 
+    eager: false,
   })
   candidate?: Candidate;
 
-  @OneToOne(() => Employer, (employer) => employer.user, { 
+  @OneToOne(() => Employer, (employer) => employer.user, {
     cascade: true,
-    eager: false 
+    eager: false,
   })
   employer?: Employer;
 
-  @OneToMany(() => Notification, (notification) => notification.user)
-  notifications?: Notification[];
+  // @OneToMany(() => Notification, (notification) => notification.user)
+  // notifications?: Notification[];
 
   @OneToMany(() => ApprovalLog, (log) => log.admin)
   approvalLogs?: ApprovalLog[];

@@ -11,7 +11,7 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { Gender, EducationLevel, ExperienceLevel } from '@/common/enums';
+import { Gender, EducationLevel, ExperienceLevel } from '../../common/enums';
 import { User } from './user.entity';
 import { CandidateCv } from './candidate-cv.entity';
 import { Application } from './application.entity';
@@ -31,42 +31,98 @@ export class Candidate {
   @Column({ type: 'bigint', unique: true, name: 'user_id' })
   userId: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'full_name' })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'full_name',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   fullName: string;
 
-  @Column({ type: 'enum', enum: Gender, nullable: true })
+  @Column({
+    type: 'enum',
+    enum: Gender,
+    nullable: true,
+  })
   gender: Gender | null;
 
-  @Column({ type: 'date', nullable: true, name: 'date_of_birth' })
+  @Column({
+    type: 'date',
+    nullable: true,
+    name: 'date_of_birth',
+  })
   dateOfBirth: Date | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'phone_number' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    name: 'phone_number',
+  })
   phoneNumber: string | null;
 
-  @Column({ type: 'text', nullable: true, name: 'avatar_url' })
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'avatar_url',
+  })
   avatarUrl: string | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'bio',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   bio: string | null;
 
-  @Column({ type: 'text', nullable: true, name: 'personal_url' })
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'personal_url',
+  })
   personalUrl: string | null;
 
   // Address Fields
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'address_street' })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'address_street',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   addressStreet: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true, name: 'address_district' })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'address_district',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   addressDistrict: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true, name: 'address_city' })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'address_city',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   addressCity: string | null;
 
-  @Column({ 
-    type: 'varchar', 
-    length: 100, 
-    default: 'Vietnam', 
-    name: 'address_country' 
+  @Column({
+    type: 'varchar',
+    length: 100,
+    default: 'Vietnam',
+    name: 'address_country',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
   })
   addressCountry: string;
 
@@ -74,19 +130,19 @@ export class Candidate {
   @Column({ type: 'int', default: 0, name: 'experience_years' })
   experienceYears: number;
 
-  @Column({ 
-    type: 'enum', 
-    enum: ExperienceLevel, 
-    nullable: true, 
-    name: 'experience_level' 
+  @Column({
+    type: 'enum',
+    enum: ExperienceLevel,
+    nullable: true,
+    name: 'experience_level',
   })
   experienceLevel: ExperienceLevel | null;
 
-  @Column({ 
-    type: 'enum', 
-    enum: EducationLevel, 
-    nullable: true, 
-    name: 'education_level' 
+  @Column({
+    type: 'enum',
+    enum: EducationLevel,
+    nullable: true,
+    name: 'education_level',
   })
   educationLevel: EducationLevel | null;
 
@@ -126,7 +182,7 @@ export class Candidate {
   }
 
   getDefaultCV(): CandidateCv | undefined {
-    return this.cvs?.find(cv => cv.isDefault);
+    return this.cvs?.find((cv) => cv.isDefault);
   }
 
   getAge(): number | null {
@@ -135,7 +191,10 @@ export class Candidate {
     const birthDate = new Date(this.dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
     return age;

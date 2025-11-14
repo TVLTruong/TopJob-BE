@@ -11,11 +11,11 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { 
-  EmployerStatus, 
-  EmployerProfileStatus, 
-  CompanySize 
-} from '@/common/enums';
+import {
+  EmployerStatus,
+  EmployerProfileStatus,
+  CompanySize,
+} from '../../common/enums';
 import { User } from './user.entity';
 import { EmployerLocation } from './employer-location.entity';
 import { EmployerPendingEdit } from './employer-pending-edit.entity';
@@ -55,8 +55,8 @@ export class Employer {
   @Column({ type: 'text', nullable: true })
   website: string | null;
 
-  @Column({ type: 'varchar', length: 50, nullable: true, name: 'tax_code' })
-  taxCode: string | null;
+  // @Column({ type: 'varchar', length: 50, nullable: true, name: 'tax_code' })
+  // taxCode: string | null;
 
   // Company Media
   @Column({ type: 'text', nullable: true, name: 'logo_url' })
@@ -69,20 +69,39 @@ export class Employer {
   @Column({ type: 'int', nullable: true, name: 'founded_year' })
   foundedYear: number | null;
 
-  @Column({ 
-    type: 'enum', 
-    enum: CompanySize, 
-    nullable: true, 
-    name: 'company_size' 
+  @Column({
+    type: 'enum',
+    enum: CompanySize,
+    nullable: true,
+    name: 'company_size',
   })
   companySize: CompanySize | null;
 
   // Contact Info
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'contact_email' })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'contact_email',
+  })
   contactEmail: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'contact_phone' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    name: 'contact_phone',
+  })
   contactPhone: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  linkedlnUrl: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  facebookUrl: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  xUrl: string | null;
 
   // Status Fields
   @Column({ type: 'boolean', default: false, name: 'is_approved' })
@@ -103,6 +122,15 @@ export class Employer {
     name: 'profile_status',
   })
   profileStatus: EmployerProfileStatus;
+
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
+  benefits: string[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
@@ -140,7 +168,7 @@ export class Employer {
   }
 
   getHeadquarters(): EmployerLocation | undefined {
-    return this.locations?.find(loc => loc.isHeadquarters);
+    return this.locations?.find((loc) => loc.isHeadquarters);
   }
 
   getCompanyAge(): number | null {

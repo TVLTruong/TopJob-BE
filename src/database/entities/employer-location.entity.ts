@@ -21,9 +21,9 @@ import { Job } from './job.entity';
  */
 @Entity('employer_locations')
 @Index(['employerId'])
-@Index(['employerId', 'isHeadquarters'], { 
-  unique: true, 
-  where: 'is_headquarters = true' 
+@Index(['employerId', 'isHeadquarters'], {
+  unique: true,
+  where: 'is_headquarters = true',
 })
 export class EmployerLocation {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
@@ -51,8 +51,8 @@ export class EmployerLocation {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => Employer, (employer) => employer.locations, { 
-    onDelete: 'CASCADE' 
+  @ManyToOne(() => Employer, (employer) => employer.locations, {
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'employer_id' })
   employer: Employer;

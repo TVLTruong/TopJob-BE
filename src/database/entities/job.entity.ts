@@ -11,14 +11,7 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import {
-  JobStatus,
-  JobType,
-  WorkLocationType,
-  SalaryType,
-  Currency,
-  ExperienceLevel,
-} from '@/common/enums';
+import { JobStatus, JobType, ExperienceLevel } from '../../common/enums';
 import { Employer } from './employer.entity';
 import { JobCategory } from './job-category.entity';
 import { EmployerLocation } from './employer-location.entity';
@@ -44,60 +37,86 @@ export class Job {
   @Index()
   locationId: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'title',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   title: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    unique: true,
+  })
   @Index()
   slug: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'description',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   description: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'requirements',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   requirements: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'responsibilities',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   responsibilities: string;
 
-  @Column({ type: 'text', nullable: true, name: 'nice_to_have' })
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'nice_to_have',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   niceToHave: string;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true, name: 'salary_min' })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    name: 'salary_min',
+  })
   salaryMin: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true, name: 'salary_max' })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    name: 'salary_max',
+  })
   salaryMax: number;
-
-  @Column({
-    type: 'enum',
-    enum: Currency,
-    default: Currency.VND,
-    name: 'salary_currency',
-  })
-  salaryCurrency: Currency;
-
-  @Column({
-    type: 'enum',
-    enum: SalaryType,
-    default: SalaryType.MONTHLY,
-    name: 'salary_type',
-  })
-  salaryType: SalaryType;
 
   @Column({ type: 'boolean', default: false, name: 'is_negotiable' })
   isNegotiable: boolean;
 
-  @Column({ type: 'enum', enum: JobType, name: 'job_type' })
-  jobType: JobType;
-
   @Column({
     type: 'enum',
-    enum: WorkLocationType,
-    default: WorkLocationType.ONSITE,
-    name: 'work_location_type',
+    enum: JobType,
+    name: 'job_type',
   })
-  workLocationType: WorkLocationType;
+  jobType: JobType;
 
   @Column({
     type: 'enum',
@@ -110,11 +129,15 @@ export class Job {
   @Column({ type: 'int', default: 1, name: 'positions_available' })
   positionsAvailable: number;
 
-  @Column({ type: 'text', array: true, nullable: true, name: 'required_skills' })
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+    name: 'required_skills',
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+  })
   requiredSkills: string[];
-
-  @Column({ type: 'text', array: true, nullable: true })
-  benefits: string[];
 
   @Column({
     type: 'enum',

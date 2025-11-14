@@ -2,7 +2,7 @@
 
 export { User } from './user.entity';
 export { Candidate } from './candidate.entity';
-export { CandidateCv } from './candidate-cv.entiy';
+export { CandidateCv } from './candidate-cv.entity';
 export { Employer } from './employer.entity';
 export { EmployerLocation } from './employer-location.entity';
 export { EmployerPendingEdit } from './employer-pending-edit.entity';

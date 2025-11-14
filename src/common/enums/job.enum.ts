@@ -6,7 +6,7 @@
  * Based on Use Cases: UCEMP03-04, UCADM02, UCADM05
  */
 export enum JobStatus {
-  //   DRAFT = 'draft', // Nháp (chưa gửi duyệt)
+  DRAFT = 'draft', // Nháp (chưa gửi duyệt)
   PENDING_APPROVAL = 'pending_approval', // Chờ admin duyệt (UCADM02)
   ACTIVE = 'active', // Đang hoạt động (đã duyệt)
   EXPIRED = 'expired', // Hết hạn
@@ -32,7 +32,7 @@ export enum JobType {
  * Job Status Labels (for display)
  */
 export const JobStatusLabel: Record<JobStatus, string> = {
-  //   [JobStatus.DRAFT]: 'Bản nháp',
+  [JobStatus.DRAFT]: 'Bản nháp',
   [JobStatus.PENDING_APPROVAL]: 'Chờ duyệt',
   [JobStatus.ACTIVE]: 'Đang hoạt động',
   [JobStatus.EXPIRED]: 'Hết hạn',

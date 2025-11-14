@@ -1,29 +1,16 @@
 // src/database/entities/saved-job.entity.ts
 
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  Index,
-  Unique,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Candidate } from './candidate.entity';
 import { Job } from './job.entity';
 
 @Entity('saved_jobs')
-@Unique(['candidateId', 'jobId'])
 export class SavedJob {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
-  id: string;
-
-  @Column({ type: 'bigint', name: 'candidate_id' })
-  @Index()
+  // Composite Primary Key
+  @PrimaryColumn({ type: 'bigint', name: 'candidate_id' })
   candidateId: string;
 
-  @Column({ type: 'bigint', name: 'job_id' })
-  @Index()
+  @PrimaryColumn({ type: 'bigint', name: 'job_id' })
   jobId: string;
 
   @Column({

@@ -11,7 +11,7 @@ import {
   Index,
   Unique,
 } from 'typeorm';
-import { ApplicationStatus } from '@/common/enums';
+import { ApplicationStatus } from '../../common/enums';
 import { Candidate } from './candidate.entity';
 import { Job } from './job.entity';
 import { CandidateCv } from './candidate-cv.entity';
@@ -35,11 +35,11 @@ export class Application {
   @Column({ type: 'bigint', nullable: true, name: 'cv_id' })
   cvId: string;
 
-  @Column({ type: 'text', nullable: true, name: 'cv_url' })
-  cvUrl: string;
+  // @Column({ type: 'text', nullable: true, name: 'cv_url' })
+  // cvUrl: string;
 
-  @Column({ type: 'text', nullable: true, name: 'cover_letter' })
-  coverLetter: string;
+  // @Column({ type: 'text', nullable: true, name: 'cover_letter' })
+  // coverLetter: string;
 
   @Column({
     type: 'enum',
@@ -51,11 +51,11 @@ export class Application {
   @Column({ type: 'timestamp', nullable: true, name: 'status_updated_at' })
   statusUpdatedAt: Date;
 
-  @Column({ type: 'text', nullable: true, name: 'employer_note' })
-  employerNote: string;
+  // @Column({ type: 'text', nullable: true, name: 'employer_note' })
+  // employerNote: string;
 
-  @Column({ type: 'int', nullable: true })
-  rating: number;
+  // @Column({ type: 'int', nullable: true })
+  // rating: number;
 
   @Column({
     type: 'timestamp',
@@ -64,14 +64,14 @@ export class Application {
   })
   appliedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true, name: 'reviewed_at' })
-  reviewedAt: Date;
+  // @Column({ type: 'timestamp', nullable: true, name: 'reviewed_at' })
+  // reviewedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true, name: 'interview_scheduled_at' })
-  interviewScheduledAt: Date;
+  // @Column({ type: 'timestamp', nullable: true, name: 'interview_scheduled_at' })
+  // interviewScheduledAt: Date;
 
-  @Column({ type: 'text', nullable: true, name: 'interview_notes' })
-  interviewNotes: string;
+  // @Column({ type: 'text', nullable: true, name: 'interview_notes' })
+  // interviewNotes: string;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;

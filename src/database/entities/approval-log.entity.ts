@@ -9,7 +9,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { ApprovalAction, ApprovalTargetType } from '@/common/enums';
+import { ApprovalAction, ApprovalTargetType } from '../../common/enums';
 import { User } from './user.entity';
 
 @Entity('approval_logs')

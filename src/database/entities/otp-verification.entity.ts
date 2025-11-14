@@ -9,7 +9,7 @@ import {
   Index,
   Check,
 } from 'typeorm';
-import { OtpPurpose } from '@/common/enums';
+import { OtpPurpose } from '../../common/enums';
 import { User } from './user.entity';
 
 @Entity('otp_verifications')

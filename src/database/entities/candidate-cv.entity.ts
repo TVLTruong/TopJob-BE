@@ -21,9 +21,9 @@ import { Candidate } from './candidate.entity';
  */
 @Entity('candidate_cvs')
 @Index(['candidateId'])
-@Index(['candidateId', 'isDefault'], { 
-  unique: true, 
-  where: 'is_default = true' 
+@Index(['candidateId', 'isDefault'], {
+  unique: true,
+  where: 'is_default = true',
 })
 export class CandidateCv {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
@@ -44,10 +44,10 @@ export class CandidateCv {
   @Column({ type: 'boolean', default: false, name: 'is_default' })
   isDefault: boolean;
 
-  @Column({ 
-    type: 'timestamp', 
-    default: () => 'CURRENT_TIMESTAMP', 
-    name: 'uploaded_at' 
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    name: 'uploaded_at',
   })
   uploadedAt: Date;
 
@@ -58,8 +58,8 @@ export class CandidateCv {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => Candidate, (candidate) => candidate.cvs, { 
-    onDelete: 'CASCADE' 
+  @ManyToOne(() => Candidate, (candidate) => candidate.cvs, {
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'candidate_id' })
   candidate: Candidate;

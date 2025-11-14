@@ -39,8 +39,8 @@ export class EmployerPendingEdit {
   createdAt: Date;
 
   // Relations
-  @ManyToOne(() => Employer, (employer) => employer.pendingEdits, { 
-    onDelete: 'CASCADE' 
+  @ManyToOne(() => Employer, (employer) => employer.pendingEdits, {
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'employer_id' })
   employer: Employer;
@@ -50,14 +50,13 @@ export class EmployerPendingEdit {
     const labels: Record<string, string> = {
       companyName: 'Tên công ty',
       logoUrl: 'Logo',
-      taxCode: 'Mã số thuế',
       website: 'Website',
     };
     return labels[this.fieldName] || this.fieldName;
   }
 
   isSensitiveField(): boolean {
-    const sensitiveFields = ['companyName', 'logoUrl', 'taxCode'];
+    const sensitiveFields = ['companyName', 'logoUrl'];
     return sensitiveFields.includes(this.fieldName);
   }
 }

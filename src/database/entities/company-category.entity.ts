@@ -40,7 +40,7 @@ export class CompanyCategory {
   updatedAt: Date;
 
   // Virtual methods
-  isActive(): boolean {
+  getIsActive(): boolean {
     return this.isActive;
   }
 }
