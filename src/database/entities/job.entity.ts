@@ -41,8 +41,6 @@ export class Job {
     type: 'varchar',
     length: 255,
     name: 'title',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   title: string;
 
@@ -58,8 +56,6 @@ export class Job {
     type: 'text',
     nullable: true,
     name: 'description',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   description: string;
 
@@ -67,8 +63,6 @@ export class Job {
     type: 'text',
     nullable: true,
     name: 'requirements',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   requirements: string;
 
@@ -76,8 +70,6 @@ export class Job {
     type: 'text',
     nullable: true,
     name: 'responsibilities',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   responsibilities: string;
 
@@ -85,8 +77,6 @@ export class Job {
     type: 'text',
     nullable: true,
     name: 'nice_to_have',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   niceToHave: string;
 
@@ -134,8 +124,6 @@ export class Job {
     array: true,
     nullable: true,
     name: 'required_skills',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   requiredSkills: string[];
 

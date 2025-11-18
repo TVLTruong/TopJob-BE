@@ -35,8 +35,6 @@ export class Candidate {
     type: 'varchar',
     length: 255,
     name: 'full_name',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   fullName: string;
 
@@ -73,8 +71,6 @@ export class Candidate {
     type: 'text',
     nullable: true,
     name: 'bio',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   bio: string | null;
 
@@ -91,8 +87,6 @@ export class Candidate {
     length: 255,
     nullable: true,
     name: 'address_street',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   addressStreet: string | null;
 
@@ -101,8 +95,6 @@ export class Candidate {
     length: 100,
     nullable: true,
     name: 'address_district',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   addressDistrict: string | null;
 
@@ -111,8 +103,6 @@ export class Candidate {
     length: 100,
     nullable: true,
     name: 'address_city',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   addressCity: string | null;
 
@@ -121,8 +111,6 @@ export class Candidate {
     length: 100,
     default: 'Vietnam',
     name: 'address_country',
-    charset: 'utf8mb4',
-    collation: 'utf8mb4_unicode_ci',
   })
   addressCountry: string;
 
