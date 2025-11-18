@@ -2,50 +2,65 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { getMailerConfig } from './config/mailer.config';
-import { getTypeOrmConfig } from './config/database.config';
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import configuration from './config/configuration';
+import {
+  appConfig,
+  databaseConfig,
+  jwtConfig,
+  mailConfig,
+  storageConfig,
+} from './config';
+// import { AuthModule } from './modules/auth/auth.module';
+// import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration],
+      load: [appConfig, databaseConfig, jwtConfig, mailConfig, storageConfig],
       envFilePath: '.env',
     }),
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: getTypeOrmConfig,
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('database.host'),
+        port: configService.get('database.port'),
+        username: configService.get('database.username'),
+        password: configService.get('database.password'),
+        database: configService.get('database.database'),
+        entities: configService.get('database.entities'),
+        migrations: configService.get('database.migrations'),
+        migrationsTableName: configService.get('database.migrationsTableName'),
+        synchronize: configService.get('database.synchronize'),
+        logging: configService.get('database.logging'),
+        ssl: configService.get('database.ssl'),
+        extra: configService.get('database.extra'),
+      }),
     }),
 
-    // Sửa MailerModule
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const config = getMailerConfig(configService);
-
-        // DEBUG: In ra để kiểm tra
-        console.log('=== MAILER CONFIG DEBUG ===');
-        console.log('SMTP HOST:', config.transport.host);
-        console.log('SMTP PORT:', config.transport.port);
-        console.log('SMTP USER:', config.transport.auth.user);
-        console.log(
-          'SMTP PASS:',
-          config.transport.auth.pass ? '***' : 'MISSING',
-        );
-        console.log('==========================');
-
-        return config;
-      },
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: configService.get<string>('mail.host'),
+          port: configService.get<number>('mail.port'),
+          secure: false,
+          auth: {
+            user: configService.get<string>('mail.user'),
+            pass: configService.get<string>('mail.password'),
+          },
+        },
+        defaults: {
+          from: configService.get<string>('mail.from'),
+        },
+      }),
     }),
 
-    AuthModule,
-    UsersModule,
+    // AuthModule,
+    // UsersModule,
   ],
 })
 export class AppModule {}
