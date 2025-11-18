@@ -15,6 +15,7 @@ import { UserRole, UserStatus } from '../../common/enums';
 import { Candidate } from './candidate.entity';
 import { Employer } from './employer.entity';
 import { ApprovalLog } from './approval-log.entity';
+import { OtpVerification } from './otp-verification.entity';
 
 /**
  * User Entity
@@ -83,6 +84,8 @@ export class User {
   @OneToMany(() => ApprovalLog, (log) => log.admin)
   approvalLogs?: ApprovalLog[];
 
+  @OneToMany(() => OtpVerification, (otp) => otp.user)
+  otpVerifications: OtpVerification[];
   // Virtual methods
   isCandidate(): boolean {
     return this.role === UserRole.CANDIDATE;
