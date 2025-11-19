@@ -9,8 +9,27 @@ import {
   mailConfig,
   storageConfig,
 } from './config';
-import { AuthModule } from './auth/auth.module';
 // import { UsersModule } from './modules/users/users.module';
+import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { OtpModule } from './modules/otp/otp.module';
+import { MailModule } from './modules/mail/mail.module';
+import { CandidatesModule } from './modules/candidates/candidates.module';
+import { CandidateCvsModule } from './modules/candidate-cvs/candidate-cvs.module';
+import { EmployersModule } from './modules/employers/employers.module';
+import { EmployerLocationsModule } from './modules/employer-locations/employer-locations.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { CompaniesModule } from './modules/companies/companies.module';
+import { JobsModule } from './modules/jobs/jobs.module';
+import { ApplicationsModule } from './modules/applications/applications.module';
+import { SavedJobsModule } from './modules/saved-jobs/saved-jobs.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { CacheModule } from './modules/cache/cache.module';
+import { LoggerModule } from './modules/logger/logger.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -97,7 +116,44 @@ import { AuthModule } from './auth/auth.module';
     }),
 
     AuthModule,
-    // UsersModule,
+
+    UsersModule,
+
+    OtpModule,
+
+    MailModule,
+
+    CandidatesModule,
+
+    CandidateCvsModule,
+
+    EmployersModule,
+
+    EmployerLocationsModule,
+
+    CategoriesModule,
+
+    CompaniesModule,
+
+    JobsModule,
+
+    ApplicationsModule,
+
+    SavedJobsModule,
+
+    AdminModule,
+
+    NotificationsModule,
+
+    StorageModule,
+
+    QueueModule,
+
+    CacheModule,
+
+    LoggerModule,
+
+    HealthModule,
   ],
 })
 export class AppModule {}
