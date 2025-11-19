@@ -25,7 +25,7 @@ export class OtpVerification {
   @Index()
   email: string;
 
-  @Column({ type: 'varchar', length: 6, name: 'otp_code' })
+  @Column({ type: 'varchar', length: 100, name: 'otp_code' })
   otpCode: string;
 
   @Column({ type: 'enum', enum: OtpPurpose })

@@ -22,7 +22,10 @@ import * as entities from './entities';
         logging: configService.get('NODE_ENV') === 'development',
         migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
         migrationsRun: false,
-        ssl: configService.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+        ssl:
+          configService.get('DB_SSL') === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
   ],

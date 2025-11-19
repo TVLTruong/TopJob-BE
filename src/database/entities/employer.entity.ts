@@ -46,7 +46,7 @@ export class Employer {
 
   // Company Info
   @Column({ type: 'varchar', length: 255, name: 'company_name' })
-  @Index()
+  // @Index()
   companyName: string;
 
   @Column({ type: 'text', nullable: true })
@@ -112,7 +112,7 @@ export class Employer {
     enum: EmployerStatus,
     default: EmployerStatus.PENDING_APPROVAL,
   })
-  @Index()
+  // @Index()
   status: EmployerStatus;
 
   @Column({

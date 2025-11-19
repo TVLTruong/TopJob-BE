@@ -9,7 +9,7 @@ import {
   mailConfig,
   storageConfig,
 } from './config';
-// import { AuthModule } from './modules/auth/auth.module';
+import { AuthModule } from './auth/auth.module';
 // import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -40,26 +40,63 @@ import {
       }),
     }),
 
+    // MailerModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (configService: ConfigService) => ({
+    //     transport: {
+    //       host: configService.get<string>('mail.host'),
+    //       port: configService.get<number>('mail.port'),
+    //       secure: false,
+    //       auth: {
+    //         user: configService.get<string>('mail.user'),
+    //         pass: configService.get<string>('mail.password'),
+    //       },
+    //     },
+    //     defaults: {
+    //       from: configService.get<string>('mail.from'),
+    //     },
+    //   }),
+    // }),
+
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        transport: {
-          host: configService.get<string>('mail.host'),
-          port: configService.get<number>('mail.port'),
-          secure: false,
-          auth: {
-            user: configService.get<string>('mail.user'),
-            pass: configService.get<string>('mail.password'),
+      useFactory: (configService: ConfigService) => {
+        // Lấy cấu hình mail với kiểu rõ ràng
+        const mailHost = configService.get<string>('mail.host');
+        const mailPort = configService.get<number>('mail.port') || 587;
+        const mailUser = configService.get<string>('mail.user');
+        const mailPass = configService.get<string>('mail.password');
+        const mailFrom =
+          configService.get<string>('mail.from') || 'noreply@topjob.com';
+
+        // Debug cấu hình
+        console.log({
+          MAIL_HOST: mailHost,
+          MAIL_USER: mailUser,
+          MAIL_PASS: mailPass ? 'Loaded' : 'Missing',
+          MAIL_FROM: mailFrom,
+        });
+
+        return {
+          transport: {
+            host: mailHost,
+            port: mailPort,
+            secure: false, // false cho port 587
+            auth: {
+              user: mailUser,
+              pass: mailPass,
+            },
           },
-        },
-        defaults: {
-          from: configService.get<string>('mail.from'),
-        },
-      }),
+          defaults: {
+            from: mailFrom,
+          },
+        };
+      },
     }),
 
-    // AuthModule,
+    AuthModule,
     // UsersModule,
   ],
 })

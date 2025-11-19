@@ -33,7 +33,7 @@ export class JobCategory {
   name: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  @Index()
+  // @Index()
   slug: string;
 
   @Column({ type: 'boolean', default: true, name: 'is_active' })

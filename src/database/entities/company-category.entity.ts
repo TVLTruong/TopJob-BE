@@ -24,7 +24,7 @@ export class CompanyCategory {
   name: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  @Index()
+  // @Index()
   slug: string;
 
   @Column({ type: 'text', nullable: true })

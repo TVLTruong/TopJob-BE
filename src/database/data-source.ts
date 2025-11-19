@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
+import { join } from 'path';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'topjob_db',
   synchronize: false,
   logging: true,
-  entities: ['src/modules/**/entities/*.entity.ts'],
-  migrations: ['src/database/migrations/*.ts'],
+  entities: [join(__dirname, 'entities', '**', '*.entity.{ts,js}')],
+  migrations: [join(__dirname, 'migrations', '**', '*.{ts,js}')],
+  migrationsTableName: 'migrations',
 });
