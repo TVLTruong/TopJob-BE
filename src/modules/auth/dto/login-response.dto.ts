@@ -1,7 +1,7 @@
 // src/auth/dto/login-response.dto.ts
 
 import { ApiProperty } from '@nestjs/swagger';
-import { UserRole, UserStatus } from '../../common/enums';
+import { UserRole, UserStatus } from '../../../common/enums';
 
 /**
  * Response DTO for Login (UC-AUTH-01)

@@ -3,7 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UserRole, UserStatus } from '../../common/enums';
+import { UserRole, UserStatus } from '../../../common/enums';
 
 /**
  * JWT Payload Interface

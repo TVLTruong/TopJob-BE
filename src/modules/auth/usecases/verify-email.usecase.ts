@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../database/entities/user.entity';
-import { Candidate } from '../../database/entities/candidate.entity';
-import { Employer } from '../../database/entities/employer.entity';
+import { User } from '../../../database/entities/user.entity';
+import { Candidate } from '../../../database/entities/candidate.entity';
+import { Employer } from '../../../database/entities/employer.entity';
 import { VerifyEmailDto, VerifyEmailResponseDto, ResendOtpDto } from '../dto';
-import { UserStatus, UserRole, OtpPurpose } from '../../common/enums';
+import { UserStatus, UserRole, OtpPurpose } from '../../../common/enums';
 import { OtpService } from '../services/otp.service';
 import { EmailService } from '../services/email.service';
 

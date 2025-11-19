@@ -1,7 +1,7 @@
 // src/auth/dto/register-response.dto.ts
 
 import { ApiProperty } from '@nestjs/swagger';
-import { UserStatus, UserRole } from '../../common/enums';
+import { UserStatus, UserRole } from '../../../common/enums';
 
 /**
  * Response DTO for Registration (UC-REG-01)

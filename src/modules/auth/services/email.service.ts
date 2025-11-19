@@ -3,7 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
-import { OtpPurpose, OtpPurposeLabel } from '../../common/enums';
+import { OtpPurpose, OtpPurposeLabel } from '../../../common/enums';
 
 /**
  * Email Service

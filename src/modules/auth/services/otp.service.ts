@@ -4,13 +4,13 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpVerification } from '../../database/entities/otp-verification.entity';
+import { OtpVerification } from '../../../database/entities/otp-verification.entity';
 import {
   OtpPurpose,
   OTP_LENGTH,
   OTP_MAX_ATTEMPTS,
   OtpExpiryTime,
-} from '../../common/enums';
+} from '../../../common/enums';
 
 /**
  * OTP Service

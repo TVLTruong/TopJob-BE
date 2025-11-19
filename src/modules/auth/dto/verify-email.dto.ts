@@ -9,7 +9,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { OtpPurpose } from '../../common/enums';
+import { OtpPurpose } from '../../../common/enums';
 
 /**
  * DTO for Email/OTP Verification

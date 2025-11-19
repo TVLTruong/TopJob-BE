@@ -8,10 +8,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from '../../database/entities/user.entity';
+import { User } from '../../../database/entities/user.entity';
 import { LoginDto } from '../dto/login.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
-import { UserRole, UserStatus } from '../../common/enums';
+import { UserRole, UserStatus } from '../../../common/enums';
 import { JwtAuthService, JwtPayload } from '../services/jwt.service';
 
 @Injectable()

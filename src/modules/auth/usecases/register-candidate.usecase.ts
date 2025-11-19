@@ -1,4 +1,4 @@
-// src/auth/usecases/register-employer.usecase.ts
+// src/auth/usecases/register-candidate.usecase.ts
 
 import {
   Injectable,
@@ -9,42 +9,37 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from '../../database/entities/user.entity';
-import { Employer } from '../../database/entities/employer.entity';
-import { RegisterEmployerDto } from '../dto/register-employer.dto';
+import { User } from '../../../database/entities/user.entity';
+import { Candidate } from '../../../database/entities/candidate.entity';
+import { RegisterCandidateDto } from '../dto/register-candidate.dto';
 import { RegisterResponseDto } from '../dto/register-response.dto';
-import {
-  UserRole,
-  UserStatus,
-  OtpPurpose,
-  EmployerProfileStatus,
-} from '../../common/enums';
+import { UserRole, UserStatus, OtpPurpose } from '../../../common/enums';
 import { OtpService } from '../services/otp.service';
 import { EmailService } from '../services/email.service';
 
 @Injectable()
-export class RegisterEmployerUseCase {
+export class RegisterCandidateUseCase {
   private readonly SALT_ROUNDS = 10;
 
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Employer)
-    private readonly employerRepository: Repository<Employer>,
+    @InjectRepository(Candidate)
+    private readonly candidateRepository: Repository<Candidate>,
     private readonly dataSource: DataSource,
     private readonly otpService: OtpService,
     private readonly emailService: EmailService,
   ) {}
 
   /**
-   * Register a new employer user and initiate email verification
+   * Register a new candidate user and initiate email verification
    * @param dto Registration data
    */
-  async execute(dto: RegisterEmployerDto): Promise<RegisterResponseDto> {
+  async execute(dto: RegisterCandidateDto): Promise<RegisterResponseDto> {
     this.validateRegistrationData(dto);
     await this.checkEmailNotExists(dto.email);
 
-    const user = await this.createUserAndEmployer(dto);
+    const user = await this.createUserAndCandidate(dto);
     const otpData = await this.initiateEmailVerification(user);
 
     return {
@@ -59,11 +54,11 @@ export class RegisterEmployerUseCase {
   }
 
   /** Validate registration input */
-  private validateRegistrationData(dto: RegisterEmployerDto): void {
+  private validateRegistrationData(dto: RegisterCandidateDto): void {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Mật khẩu xác nhận không khớp');
     }
-    // Additional validation handled by DTO decorators
+    // Additional validations handled by DTO decorators
   }
 
   /** Ensure email is not already used */
@@ -76,8 +71,10 @@ export class RegisterEmployerUseCase {
     }
   }
 
-  /** Create user and employer profile in a transaction */
-  private async createUserAndEmployer(dto: RegisterEmployerDto): Promise<User> {
+  /** Create user and candidate profile in a transaction */
+  private async createUserAndCandidate(
+    dto: RegisterCandidateDto,
+  ): Promise<User> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -88,23 +85,18 @@ export class RegisterEmployerUseCase {
       const user = queryRunner.manager.create(User, {
         email: dto.email.toLowerCase(),
         passwordHash,
-        role: UserRole.EMPLOYER,
+        role: UserRole.CANDIDATE,
         status: UserStatus.PENDING_EMAIL_VERIFICATION,
         isVerified: false,
         emailVerifiedAt: null,
       });
       const savedUser = await queryRunner.manager.save(User, user);
 
-      const employer = queryRunner.manager.create(Employer, {
+      const candidate = queryRunner.manager.create(Candidate, {
         userId: savedUser.id,
         fullName: dto.fullName,
-        workTitle: dto.workTitle,
-        companyName: dto.companyName,
-        contactPhone: dto.contactPhone,
-        contactEmail: dto.email.toLowerCase(),
-        profileStatus: EmployerProfileStatus.APPROVED, // initial profile status
       });
-      await queryRunner.manager.save(Employer, employer);
+      await queryRunner.manager.save(Candidate, candidate);
 
       await queryRunner.commitTransaction();
       return savedUser;
