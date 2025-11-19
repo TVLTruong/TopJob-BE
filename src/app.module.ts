@@ -59,25 +59,6 @@ import { HealthModule } from './modules/health/health.module';
       }),
     }),
 
-    // MailerModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: (configService: ConfigService) => ({
-    //     transport: {
-    //       host: configService.get<string>('mail.host'),
-    //       port: configService.get<number>('mail.port'),
-    //       secure: false,
-    //       auth: {
-    //         user: configService.get<string>('mail.user'),
-    //         pass: configService.get<string>('mail.password'),
-    //       },
-    //     },
-    //     defaults: {
-    //       from: configService.get<string>('mail.from'),
-    //     },
-    //   }),
-    // }),
-
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
