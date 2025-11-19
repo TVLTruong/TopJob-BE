@@ -1,10 +1,20 @@
 // src/auth/dto/verify-email.dto.ts
 
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  Length,
+  IsOptional,
+  IsEnum,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { OtpPurpose } from '../../common/enums';
 
 /**
- * DTO for Email Verification (UC-REG-03)
+ * DTO for Email/OTP Verification
+ * UC-REG-03: Verify registration email
+ * UC-AUTH-03: Verify forgot password OTP
  */
 export class VerifyEmailDto {
   @ApiProperty({
@@ -25,6 +35,17 @@ export class VerifyEmailDto {
   @IsString({ message: 'Mã OTP phải là chuỗi ký tự' })
   @Length(6, 6, { message: 'Mã OTP phải có đúng 6 ký tự' })
   otpCode: string;
+
+  @ApiProperty({
+    description: 'Mục đích xác thực OTP',
+    enum: OtpPurpose,
+    example: OtpPurpose.EMAIL_VERIFICATION,
+    required: false,
+    default: OtpPurpose.EMAIL_VERIFICATION,
+  })
+  @IsOptional()
+  @IsEnum(OtpPurpose, { message: 'Mục đích OTP không hợp lệ' })
+  purpose?: OtpPurpose;
 }
 
 /**

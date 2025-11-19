@@ -112,18 +112,20 @@ export class AuthController {
   }
 
   /**
-   * UC-REG-03: Verify Email
+   * UC-REG-03: Verify Email Registration
+   * UC-AUTH-03: Verify OTP for Password Reset
    * POST /auth/verify-email
    */
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Xác thực email',
-    description: 'Xác thực email bằng mã OTP (UC-REG-03)',
+    summary: 'Xác thực OTP',
+    description:
+      'Xác thực mã OTP (UC-REG-03: xác thực email đăng ký | UC-AUTH-03: xác thực OTP quên mật khẩu)',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Xác thực email thành công',
+    description: 'OTP đã được xác thực thành công',
     type: VerifyEmailResponseDto,
   })
   @ApiBadRequestResponse({
@@ -220,14 +222,11 @@ export class AuthController {
       },
     },
   })
-  async logout(
-    // TODO: Add @CurrentUser() decorator to get userId from JWT
-    // @CurrentUser() userId: string,
-  ): Promise<{ message: string; redirectUrl: string }> {
-    // For now, use placeholder userId
-    // In production, extract userId from JWT token
+  async logout(): Promise<{ message: string; redirectUrl: string }> {
+    // TODO: Replace placeholder with @CurrentUser() when JWT extraction is implemented
     const userId = 'placeholder-user-id';
-    return await this.logoutUseCase.execute(userId);
+
+    return this.logoutUseCase.execute(userId);
   }
 
   /**
@@ -253,14 +252,15 @@ export class AuthController {
   }
 
   /**
-   * UC-AUTH-03: Reset Password with OTP
+   * UC-AUTH-03: Reset Password (after OTP verified)
    * POST /auth/reset-password
    */
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Đặt lại mật khẩu',
-    description: 'Đặt lại mật khẩu với mã OTP (UC-AUTH-03)',
+    description:
+      'Đặt lại mật khẩu sau khi đã xác thực OTP (/verify-email với purpose=PASSWORD_RESET)',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -270,13 +270,14 @@ export class AuthController {
       properties: {
         message: {
           type: 'string',
-          example: 'Đổi mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.',
+          example:
+            'Đổi mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.',
         },
       },
     },
   })
   @ApiBadRequestResponse({
-    description: 'Dữ liệu không hợp lệ hoặc OTP không đúng',
+    description: 'Dữ liệu không hợp lệ',
   })
   async resetPassword(
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))

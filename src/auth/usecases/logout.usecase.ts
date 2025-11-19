@@ -3,49 +3,25 @@
 import { Injectable } from '@nestjs/common';
 
 /**
- * Use Case: UC-AUTH-02 - Đăng xuất
+ * UC-AUTH-02: Logout user.
  *
- * Main Flow:
- * 1. User clicks "Logout"
- * 2. System destroys login session (session/token)
- * 3. System redirects user to Landing Page
- *
- * Alternative Flows: None
- *
- * Note: For JWT-based authentication, logout is primarily handled client-side
- * by removing the token. The server can optionally maintain a blacklist of
- * invalidated tokens for additional security.
+ * Handles server-side tasks on user logout.
+ * For JWT: client deletes token; server can optionally log, revoke refresh tokens, or blacklist tokens.
  */
 @Injectable()
 export class LogoutUseCase {
   /**
-   * Execute logout use case
-   * UC-AUTH-02: Logout user
-   *
-   * Note: In JWT authentication, the actual logout is handled client-side
-   * by removing the token from storage. This method can be used for:
-   * - Logging logout events
-   * - Invalidating refresh tokens (if implemented)
-   * - Adding token to blacklist (if implemented)
-   *
-   * @param userId - ID of user logging out
-   * @returns Success message
+   * Execute logout for a given user.
+   * @param userId - ID of the user
+   * @returns success message and redirect URL
    */
-  execute(userId: string): { message: string; redirectUrl: string } {
-    // Step 1-2: Destroy session
-    // In JWT-based auth, client removes token
-    // Server-side: Can add token to blacklist, revoke refresh tokens, etc.
-
-    // TODO: Optional - Add to token blacklist
-    // TODO: Optional - Revoke refresh tokens
-    // TODO: Optional - Log logout event
-
+  execute(userId: string): Promise<{ message: string; redirectUrl: string }> {
+    // Log the logout event or perform optional server-side tasks
     console.log(`User ${userId} logged out at ${new Date().toISOString()}`);
 
-    // Step 3: Return redirect URL
-    return {
+    return Promise.resolve({
       message: 'Đăng xuất thành công',
       redirectUrl: '/',
-    };
+    });
   }
 }

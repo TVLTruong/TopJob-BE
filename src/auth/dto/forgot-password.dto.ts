@@ -24,7 +24,8 @@ export class ForgotPasswordDto {
 }
 
 /**
- * DTO for Reset Password (UC-AUTH-03 Step 7-8)
+ * DTO for Reset Password (UC-AUTH-03 Step 9-10)
+ * Note: OTP đã được verify ở bước trước thông qua /verify-email
  */
 export class ResetPasswordDto {
   @ApiProperty({
@@ -34,14 +35,6 @@ export class ResetPasswordDto {
   @IsNotEmpty({ message: 'Email không được để trống' })
   @IsEmail({}, { message: 'Email không đúng định dạng' })
   email: string;
-
-  @ApiProperty({
-    description: 'Mã OTP 6 chữ số',
-    example: '123456',
-  })
-  @IsNotEmpty({ message: 'Mã OTP không được để trống' })
-  @IsString({ message: 'Mã OTP phải là chuỗi ký tự' })
-  otpCode: string;
 
   @ApiProperty({
     description:

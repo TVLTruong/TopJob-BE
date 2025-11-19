@@ -52,7 +52,7 @@ export class EmailService {
     } catch (err) {
       // Wrap lỗi gốc
       throw new Error(
-        `Gửi email thất bại: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        `Gửi email thất bại: ${err instanceof Error ? err.message : 'Lỗi không xác định'}`,
       );
     }
   }
@@ -162,7 +162,7 @@ export class EmailService {
           
           <div class="footer">
             <p>Email này được gửi tự động, vui lòng không trả lời.</p>
-            <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} ${appName}. Bảo lưu mọi quyền.</p>
           </div>
         </div>
       </body>

@@ -14,15 +14,8 @@ import {
 
 /**
  * OTP Service
- * Handles OTP generation, verification, and management
- *
- * UC-CORE-01: Gửi và Xác thực OTP Email
- * - Tạo OTP 6 số và thời gian hết hạn
- * - Lưu trữ OTP đã hash
- * - Xác thực OTP người dùng nhập
- * - Trả về kết quả Thành công/Thất bại
- *
- * Also used in: UC-REG-03, UC-AUTH-03
+ * - Generate, store, verify OTP (UC-CORE-01)
+ * - Shared for registration / login / email verification
  */
 @Injectable()
 export class OtpService {
@@ -31,86 +24,58 @@ export class OtpService {
     private readonly otpRepository: Repository<OtpVerification>,
   ) {}
 
-  /**
-   * Generate a random 6-digit OTP code
-   */
-  private generateOtpCode(): string {
-    const min = Math.pow(10, OTP_LENGTH - 1);
-    const max = Math.pow(10, OTP_LENGTH) - 1;
+  /** Generate random 6-digit OTP */
+  private generateOtp(): string {
+    const min = 10 ** (OTP_LENGTH - 1);
+    const max = 10 ** OTP_LENGTH - 1;
     return Math.floor(Math.random() * (max - min + 1) + min).toString();
   }
 
-  /**
-   * Hash OTP code before storing
-   * UC-CORE-01: Lưu trữ OTP đã hash
-   */
-  private async hashOtp(otpCode: string): Promise<string> {
-    const saltRounds = 10;
-    return await bcrypt.hash(otpCode, saltRounds);
+  private hashOtp(otp: string): Promise<string> {
+    return bcrypt.hash(otp, 10);
+  }
+
+  private compareOtp(otp: string, hashed: string): Promise<boolean> {
+    return bcrypt.compare(otp, hashed);
   }
 
   /**
-   * Compare OTP code with hashed OTP
-   */
-  private async compareOtp(
-    otpCode: string,
-    hashedOtp: string,
-  ): Promise<boolean> {
-    return await bcrypt.compare(otpCode, hashedOtp);
-  }
-
-  /**
-   * Create and save a new OTP
-   * @param email - User email
-   * @param purpose - Purpose of OTP
-   * @returns OTP record with code and expiry time
+   * Create new OTP:
+   * - Limit request frequency
+   * - Invalidate old OTPs
+   * - Store hashed OTP
    */
   async createOtp(
     email: string,
     purpose: OtpPurpose,
   ): Promise<{ otpCode: string; expiresAt: Date; expiresInMinutes: number }> {
-    // Check rate limit: max 5 OTPs per hour
+    // Check max 5 requests per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentOtpCount = await this.otpRepository.count({
-      where: {
-        email,
-        purpose,
-        createdAt: LessThan(oneHourAgo),
-      },
+    const requestCount = await this.otpRepository.count({
+      where: { email, purpose, createdAt: LessThan(oneHourAgo) },
     });
 
-    if (recentOtpCount >= 5) {
+    if (requestCount >= 5) {
       throw new BadRequestException(
         'Bạn đã yêu cầu quá nhiều mã OTP. Vui lòng thử lại sau 1 giờ.',
       );
     }
 
-    // Invalidate all previous unused OTPs for this email and purpose
+    // Invalidate previous OTPs
     await this.otpRepository.update(
-      {
-        email,
-        purpose,
-        isUsed: false,
-        isVerified: false,
-      },
-      {
-        isUsed: true, // Mark as used to invalidate
-      },
+      { email, purpose, isUsed: false, isVerified: false },
+      { isUsed: true },
     );
 
-    // Generate new OTP
-    const otpCode = this.generateOtpCode();
+    // Create new OTP
+    const otpCode = this.generateOtp();
     const expiresInMinutes = OtpExpiryTime[purpose];
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-    // Hash OTP before saving (UC-CORE-01: Lưu trữ OTP đã hash)
-    const hashedOtp = await this.hashOtp(otpCode);
-
-    // Save OTP to database
     const otp = this.otpRepository.create({
       email,
-      otpCode: hashedOtp, // Store hashed OTP
       purpose,
+      otpCode: await this.hashOtp(otpCode), // Store hashed version
       expiresAt,
       isUsed: false,
       isVerified: false,
@@ -119,75 +84,55 @@ export class OtpService {
 
     await this.otpRepository.save(otp);
 
-    return {
-      otpCode,
-      expiresAt,
-      expiresInMinutes,
-    };
+    return { otpCode, expiresAt, expiresInMinutes };
   }
 
   /**
-   * Verify OTP code
-   * @param email - User email
-   * @param otpCode - OTP code to verify
-   * @param purpose - Purpose of OTP
-   * @returns true if OTP is valid
-   * @throws BadRequestException if OTP is invalid or expired
+   * Verify OTP:
+   * - Check existence
+   * - Check expiration
+   * - Check wrong attempt count
+   * - Compare OTP code
    */
   async verifyOtp(
     email: string,
     otpCode: string,
     purpose: OtpPurpose,
   ): Promise<boolean> {
-    // Find the most recent unused OTP for this email and purpose
     const otp = await this.otpRepository.findOne({
-      where: {
-        email,
-        purpose,
-        isUsed: false,
-        isVerified: false,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
+      where: { email, purpose, isUsed: false, isVerified: false },
+      order: { createdAt: 'DESC' },
     });
 
-    if (!otp) {
-      throw new BadRequestException(
-        'Mã OTP không tồn tại hoặc đã được sử dụng.',
-      );
-    }
+    if (!otp)
+      throw new BadRequestException('Mã OTP không hợp lệ hoặc đã dùng.');
 
-    // Check if OTP is expired
     if (new Date() > otp.expiresAt) {
       throw new BadRequestException(
         'Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.',
       );
     }
 
-    // Check attempt count
     if (otp.attemptCount >= OTP_MAX_ATTEMPTS) {
       throw new BadRequestException(
-        'Bạn đã nhập sai quá nhiều lần. Vui lòng yêu cầu mã OTP mới.',
+        'Bạn đã nhập sai quá nhiều lần. Vui lòng yêu cầu mã mới.',
       );
     }
 
-    // Verify OTP code (UC-CORE-01: E2 - OTP sai)
-    const isOtpValid = await this.compareOtp(otpCode, otp.otpCode);
+    const isValid = await this.compareOtp(otpCode, otp.otpCode);
 
-    if (!isOtpValid) {
-      // Increment attempt count
+    if (!isValid) {
       await this.otpRepository.update(otp.id, {
         attemptCount: otp.attemptCount + 1,
       });
 
-      const remainingAttempts = OTP_MAX_ATTEMPTS - (otp.attemptCount + 1);
+      const remain = OTP_MAX_ATTEMPTS - (otp.attemptCount + 1);
       throw new BadRequestException(
-        `Mã OTP không đúng. Bạn còn ${remainingAttempts} lần thử.`,
+        `Mã OTP không đúng. Bạn còn ${remain} lần thử.`,
       );
     }
 
-    // Mark OTP as verified and used
+    // Mark OTP as successfully verified
     await this.otpRepository.update(otp.id, {
       isVerified: true,
       isUsed: true,
@@ -197,38 +142,22 @@ export class OtpService {
     return true;
   }
 
-  /**
-   * Clean up expired OTPs (can be called by a cron job)
-   */
+  // Delete expired OTPs (for cron job)
   async cleanupExpiredOtps(): Promise<number> {
     const result = await this.otpRepository.delete({
       expiresAt: LessThan(new Date()),
     });
 
-    return result.affected || 0;
+    return result.affected ?? 0;
   }
 
-  /**
-   * Check if an OTP exists and is valid for a given email and purpose
-   */
+  // Check if email has a valid non-expired OTP
   async hasValidOtp(email: string, purpose: OtpPurpose): Promise<boolean> {
     const otp = await this.otpRepository.findOne({
-      where: {
-        email,
-        purpose,
-        isUsed: false,
-        isVerified: false,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
+      where: { email, purpose, isUsed: false, isVerified: false },
+      order: { createdAt: 'DESC' },
     });
 
-    if (!otp) {
-      return false;
-    }
-
-    // Check if not expired
-    return new Date() <= otp.expiresAt;
+    return !!otp && new Date() <= otp.expiresAt;
   }
 }
