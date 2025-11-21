@@ -86,6 +86,12 @@ export class VerifyEmailUseCase {
       );
     }
 
+    // delete previous OTPs for email verification
+    await this.otpService.deleteOtpsByEmailAndPurpose(
+      user.email,
+      OtpPurpose.EMAIL_VERIFICATION,
+    );
+
     const { otpCode, expiresAt, expiresInMinutes } =
       await this.otpService.createOtp(
         user.email,
@@ -111,7 +117,6 @@ export class VerifyEmailUseCase {
     if (!user) {
       throw new NotFoundException('Không tìm thấy người dùng');
     }
-
     return user;
   }
 

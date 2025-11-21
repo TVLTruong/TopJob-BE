@@ -142,6 +142,14 @@ export class OtpService {
     return true;
   }
 
+  /** Delete OTPs by email and purpose */
+  async deleteOtpsByEmailAndPurpose(
+    email: string,
+    purpose: OtpPurpose,
+  ): Promise<void> {
+    await this.otpRepository.delete({ email, purpose });
+  }
+
   // Delete expired OTPs (for cron job)
   async cleanupExpiredOtps(): Promise<number> {
     const result = await this.otpRepository.delete({
