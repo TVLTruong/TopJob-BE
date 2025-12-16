@@ -5,9 +5,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmployersController } from './employers.controller';
+import { EmployerProfileController } from './employer-profile.controller';
 import { EmployersService } from './employers.service';
-import { Employer, EmployerLocation, User } from '../../database/entities';
+import {
+  Employer,
+  EmployerLocation,
+  EmployerPendingEdit,
+  User,
+  Application,
+  Job,
+} from '../../database/entities';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
+import { LogoutUseCase } from '../auth/usecases';
 
 /**
  * Employers Module
@@ -17,7 +26,14 @@ import { JwtAuthGuard, RolesGuard } from '../../common/guards';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Employer, EmployerLocation, User]),
+    TypeOrmModule.forFeature([
+      Employer,
+      EmployerLocation,
+      EmployerPendingEdit,
+      User,
+      Application,
+      Job,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -29,8 +45,8 @@ import { JwtAuthGuard, RolesGuard } from '../../common/guards';
       }),
     }),
   ],
-  controllers: [EmployersController],
-  providers: [EmployersService, JwtAuthGuard, RolesGuard],
+  controllers: [EmployersController, EmployerProfileController],
+  providers: [EmployersService, JwtAuthGuard, RolesGuard, LogoutUseCase],
   exports: [EmployersService],
 })
 export class EmployersModule {}

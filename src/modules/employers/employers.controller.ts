@@ -6,8 +6,10 @@ import {
   Put,
   Post,
   Delete,
+  Patch,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -29,7 +31,13 @@ import {
   EmployerProfileResponseDto,
   AddLocationDto,
   EmployerLocationResponseDto,
+  ApplicationDetailResponseDto,
+  ActionApplicationParamDto,
+  UpdateApplicationStatusResponseDto,
+  GetApplicationsQueryDto,
+  ApplicationListItemDto,
 } from './dto';
+import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
 
 /**
  * Employers Controller
@@ -230,5 +238,111 @@ export class EmployersController {
     @Param('id') id: string,
   ): Promise<EmployerProfileResponseDto> {
     return this.employersService.getProfileById(id);
+  }
+
+  /**
+   * Get all applications for employer's jobs
+   * GET /employer/applications
+   */
+  @Get('applications')
+  @Roles(UserRole.EMPLOYER)
+  @ApiOperation({
+    summary: 'Lấy danh sách đơn ứng tuyển',
+    description:
+      'Lấy tất cả đơn ứng tuyển cho các job của employer hiện tại. Hỗ trợ filter theo jobId, status, thời gian, và search theo tên ứng viên.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Danh sách đơn ứng tuyển',
+    type: ApplicationListItemDto,
+    isArray: true,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'jobId không thuộc employer hiện tại',
+  })
+  async getAllApplications(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: GetApplicationsQueryDto,
+  ): Promise<PaginationResponseDto<ApplicationListItemDto>> {
+    return await this.employersService.getAllApplications(user.sub, query);
+  }
+
+  /**
+   * Get application details by application ID
+   * GET /employer/applications/:applicationId
+   */
+  @Get('applications/:applicationId')
+  @Roles(UserRole.EMPLOYER)
+  @ApiOperation({
+    summary: 'Lấy chi tiết đơn ứng tuyển',
+    description:
+      'Lấy chi tiết đơn ứng tuyển (chỉ xem được đơn thuộc job của mình). Khi xem, trạng thái NEW sẽ tự động chuyển thành VIEWED.',
+  })
+  @ApiParam({
+    name: 'applicationId',
+    description: 'ID của đơn ứng tuyển',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Thành công',
+    type: ApplicationDetailResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy đơn ứng tuyển hoặc không có quyền truy cập',
+  })
+  async getApplicationDetail(
+    @CurrentUser() user: JwtPayload,
+    @Param('applicationId') applicationId: string,
+  ): Promise<ApplicationDetailResponseDto> {
+    return this.employersService.getApplicationDetail(user.sub, applicationId);
+  }
+
+  /**
+   * Update application status (shortlist or reject)
+   * PATCH /employer/applications/:id/{action}
+   */
+  @Patch('applications/:id/:action')
+  @Roles(UserRole.EMPLOYER)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cập nhật trạng thái đơn ứng tuyển',
+    description:
+      'Shortlist hoặc reject đơn ứng tuyển. Chỉ cho phép với status NEW hoặc VIEWED.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của đơn ứng tuyển',
+  })
+  @ApiParam({
+    name: 'action',
+    description: 'Hành động: shortlist hoặc reject',
+    enum: ['shortlist', 'reject'],
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Cập nhật thành công',
+    type: UpdateApplicationStatusResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description:
+      'Trạng thái đơn ứng tuyển không hợp lệ để thực hiện hành động này',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy đơn ứng tuyển hoặc không có quyền truy cập',
+  })
+  async updateApplicationStatus(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') applicationId: string,
+    @Param() params: ActionApplicationParamDto,
+  ): Promise<UpdateApplicationStatusResponseDto> {
+    return this.employersService.updateApplicationStatus(
+      user.sub,
+      applicationId,
+      params.action,
+    );
   }
 }

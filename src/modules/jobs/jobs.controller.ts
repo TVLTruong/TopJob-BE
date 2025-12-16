@@ -2,8 +2,8 @@
 import {
   Controller,
   Get,
-  Query, // 👈 (Dùng để nhận DTO 'search')
   Param, // 👈 (Dùng để nhận 'slug')
+  Query, // 👈 (Dùng để nhận DTO 'search')
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -14,7 +14,7 @@ import { SlugParamDto } from '../../common/dto/slug-param.dto'; // (Dùng 'tool'
 
 @Controller('jobs') // Route gốc: /api/jobs
 export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+  constructor(private readonly jobsService: JobsService) { }
 
   /**
    * (API Dịch từ UC-GUEST-01: Tìm kiếm việc làm )

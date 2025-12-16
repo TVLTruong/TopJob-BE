@@ -1,4 +1,14 @@
-// src/common/guards/jwt-auth.guard.ts
+/**
+ * JWT Authentication Guard
+ * Production-grade authentication guard for NestJS
+ *
+ * Responsibilities:
+ * - Validate JWT token from Authorization header
+ * - Attach user payload to request object
+ * - Allow public routes to bypass authentication
+ *
+ * @see {@link https://docs.nestjs.com/guards NestJS Guards}
+ */
 
 import {
   Injectable,
@@ -12,15 +22,24 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { JwtPayload } from '../../modules/auth/services/jwt.service';
-
-// Extend Express Request to include user
-interface RequestWithUser extends Request {
-  user?: JwtPayload;
-}
+import { AuthenticatedUser } from '../types/express';
 
 /**
  * JWT Authentication Guard
- * Protects routes that require authentication
+ *
+ * Usage:
+ * ```typescript
+ * @Controller('protected')
+ * @UseGuards(JwtAuthGuard)
+ * export class ProtectedController {}
+ * ```
+ *
+ * Skip authentication for specific routes:
+ * ```typescript
+ * @Public()
+ * @Get('public-route')
+ * publicRoute() {}
+ * ```
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -30,8 +49,14 @@ export class JwtAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
   ) {}
 
+  /**
+   * Determines if the current user can activate the route
+   * @param context - Execution context containing request information
+   * @returns Promise resolving to true if access is granted
+   * @throws UnauthorizedException if token is missing or invalid
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Check if route is marked as public
+    // Check if route is marked as public using @Public() decorator
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -41,7 +66,7 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
@@ -53,8 +78,14 @@ export class JwtAuthGuard implements CanActivate {
         secret: this.configService.get<string>('jwt.secret'),
       });
 
-      // Attach user payload to request object
-      request.user = payload;
+      // Map JWT payload to AuthenticatedUser and attach to request
+      const user: AuthenticatedUser = {
+        id: payload.sub,
+        role: payload.role,
+        status: payload.status,
+      };
+
+      request.user = user;
     } catch {
       throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
     }
@@ -62,11 +93,18 @@ export class JwtAuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromHeader(request: RequestWithUser): string | undefined {
+  /**
+   * Extracts JWT token from Authorization header
+   * @param request - Express request object
+   * @returns Token string or undefined if not found
+   * @private
+   */
+  private extractTokenFromHeader(request: Request): string | undefined {
     const authorization = request.headers.authorization;
     if (!authorization) {
       return undefined;
     }
+
     const [type, token] = authorization.split(' ');
     return type === 'Bearer' ? token : undefined;
   }
