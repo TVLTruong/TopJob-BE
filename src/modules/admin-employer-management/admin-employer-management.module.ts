@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User, Employer, Job } from '../../database/entities';
 import { AdminEmployerManagementController } from './admin-employer-management.controller';
 import { AdminEmployerManagementService } from './admin-employer-management.service';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Admin Employer Management Module
@@ -18,7 +19,7 @@ import { AdminEmployerManagementService } from './admin-employer-management.serv
  * - Job statistics per employer
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Employer, Job])],
+  imports: [TypeOrmModule.forFeature([User, Employer, Job]), AuthModule],
   controllers: [AdminEmployerManagementController],
   providers: [AdminEmployerManagementService],
   exports: [AdminEmployerManagementService],

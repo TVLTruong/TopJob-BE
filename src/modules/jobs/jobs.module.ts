@@ -12,14 +12,16 @@ import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
 import { EmployerJobsController } from './employer-jobs.controller';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     DatabaseModule, // 👈 (Nối "Bảng mạch")
     TypeOrmModule.forFeature([Job, Employer, EmployerLocation, Application]), // 👈 "Đăng ký" Entity
+    AuthModule, // 👈 THÊM AuthModule
   ],
   controllers: [JobsController, EmployerJobsController],
   providers: [JobsService, JwtAuthGuard, RolesGuard],
   exports: [JobsService], // 👈 "Xuất" (Export) Service này
 })
-export class JobsModule { }
+export class JobsModule {}

@@ -17,7 +17,7 @@ import {
 } from '../../database/entities';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
 import { LogoutUseCase } from '../auth/usecases';
-
+import { AuthModule } from '../auth/auth.module';
 /**
  * Employers Module
  * Handles employer profile management
@@ -33,6 +33,7 @@ import { LogoutUseCase } from '../auth/usecases';
       User,
       Application,
       Job,
+      AuthModule,
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

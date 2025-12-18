@@ -25,6 +25,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums';
 import { IdParamDto } from '../../common/dto/id-param.dto';
+import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
 import { JobCategory, CompanyCategory } from '../../database/entities';
 import { AdminCategoryService } from './admin-category.service';
 import {
@@ -66,12 +67,9 @@ export class AdminCategoryController {
   })
   @ApiResponse({ status: 401, description: 'Chưa xác thực' })
   @ApiResponse({ status: 403, description: 'Không có quyền truy cập' })
-  async getCategoryList(@Query() query: QueryCategoryDto): Promise<{
-    data: (JobCategory | CompanyCategory)[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  async getCategoryList(
+    @Query() query: QueryCategoryDto,
+  ): Promise<PaginationResponseDto<JobCategory | CompanyCategory>> {
     return this.adminCategoryService.getCategoryList(query);
   }
 

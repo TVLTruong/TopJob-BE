@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobCategory, CompanyCategory } from '../../database/entities';
 import { AdminCategoryController } from './admin-category.controller';
 import { AdminCategoryService } from './admin-category.service';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Admin Category Management Module
@@ -17,7 +18,10 @@ import { AdminCategoryService } from './admin-category.service';
  * - Frontend dropdown auto-updates based on isActive
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([JobCategory, CompanyCategory])],
+  imports: [
+    TypeOrmModule.forFeature([JobCategory, CompanyCategory]),
+    AuthModule,
+  ],
   controllers: [AdminCategoryController],
   providers: [AdminCategoryService],
   exports: [AdminCategoryService],

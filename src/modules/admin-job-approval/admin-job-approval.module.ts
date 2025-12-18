@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Job, ApprovalLog } from '../../database/entities';
 import { AdminJobApprovalController } from './admin-job-approval.controller';
 import { AdminJobApprovalService } from './admin-job-approval.service';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Admin Job Approval Module
@@ -17,7 +18,7 @@ import { AdminJobApprovalService } from './admin-job-approval.service';
  * - Email notifications (TODO)
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Job, ApprovalLog])],
+  imports: [TypeOrmModule.forFeature([Job, ApprovalLog]), AuthModule],
   controllers: [AdminJobApprovalController],
   providers: [AdminJobApprovalService],
   exports: [AdminJobApprovalService],

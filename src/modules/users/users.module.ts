@@ -8,7 +8,7 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { User, Candidate, Employer } from '../../database/entities';
 import { JwtAuthGuard } from '../../common/guards';
-
+import { AuthModule } from '../auth/auth.module';
 /**
  * Users Module
  * Handles user management
@@ -26,6 +26,7 @@ import { JwtAuthGuard } from '../../common/guards';
         },
       }),
     }),
+    AuthModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, JwtAuthGuard],

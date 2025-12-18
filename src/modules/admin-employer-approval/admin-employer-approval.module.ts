@@ -10,6 +10,7 @@ import {
 } from '../../database/entities';
 import { AdminEmployerApprovalController } from './admin-employer-approval.controller';
 import { AdminEmployerApprovalService } from './admin-employer-approval.service';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Admin Employer Approval Module
@@ -29,6 +30,7 @@ import { AdminEmployerApprovalService } from './admin-employer-approval.service'
       EmployerPendingEdit,
       ApprovalLog,
     ]),
+    AuthModule,
   ],
   controllers: [AdminEmployerApprovalController],
   providers: [AdminEmployerApprovalService],

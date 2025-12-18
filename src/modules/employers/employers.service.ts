@@ -935,10 +935,12 @@ export class EmployersService {
 
     return {
       data: transformedData,
-      total: paginationResult.total,
-      page: paginationResult.page,
-      limit: paginationResult.limit,
-      totalPages: paginationResult.totalPages,
+      meta: {
+        total: paginationResult.meta.total,
+        page: paginationResult.meta.page,
+        limit: paginationResult.meta.limit,
+        totalPages: paginationResult.meta.totalPages,
+      },
     };
   }
 

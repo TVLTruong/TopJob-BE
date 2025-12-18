@@ -85,7 +85,7 @@ export class UploadController {
     )
     file: Express.Multer.File,
   ): Promise<UploadResponseDto> {
-    const url = await this.storageService.uploadCompanyLogo(file);
+    const { url } = await this.storageService.uploadCompanyLogo(file);
     return this.buildUploadResponse(url, file);
   }
 
@@ -105,7 +105,7 @@ export class UploadController {
     )
     file: Express.Multer.File,
   ): Promise<UploadResponseDto> {
-    const url = await this.storageService.uploadCompanyCover(file);
+    const { url } = await this.storageService.uploadCompanyCover(file);
     return this.buildUploadResponse(url, file);
   }
 
@@ -125,7 +125,7 @@ export class UploadController {
     )
     file: Express.Multer.File,
   ): Promise<UploadResponseDto> {
-    const url = await this.storageService.uploadCandidateAvatar(file);
+    const { url } = await this.storageService.uploadCandidateAvatar(file);
     return this.buildUploadResponse(url, file);
   }
 
@@ -145,7 +145,7 @@ export class UploadController {
     )
     file: Express.Multer.File,
   ): Promise<UploadResponseDto> {
-    const url = await this.storageService.uploadCV(file);
+    const { url } = await this.storageService.uploadCV(file);
     return this.buildUploadResponse(url, file);
   }
 }

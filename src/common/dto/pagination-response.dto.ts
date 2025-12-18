@@ -1,19 +1,12 @@
 // src/common/dto/pagination-response.dto.ts
-import { IsArray, IsInt } from 'class-validator';
+
+import { ApiProperty } from '@nestjs/swagger';
+import { PaginationMetaDto } from './pagination-meta.dto';
 
 export class PaginationResponseDto<T> {
-  @IsArray()
-  data: T[]; // (Mảng chứa 'jobs' hoặc 'companies')
+  @ApiProperty({ isArray: true })
+  data: T[];
 
-  @IsInt()
-  total: number; // (Tổng số lượng)
-
-  @IsInt()
-  page: number;
-
-  @IsInt()
-  limit: number;
-
-  @IsInt()
-  totalPages: number;
+  @ApiProperty({ type: PaginationMetaDto })
+  meta: PaginationMetaDto;
 }

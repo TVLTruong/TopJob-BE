@@ -16,6 +16,7 @@ import {
   CandidateCvService,
   CandidateJobService,
 } from './services';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import {
       Application,
     ]),
     StorageModule,
+    AuthModule,
   ],
   controllers: [CandidatesController],
   providers: [

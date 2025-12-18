@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User, Candidate, Application } from '../../database/entities';
 import { AdminCandidateManagementController } from './admin-candidate-management.controller';
 import { AdminCandidateManagementService } from './admin-candidate-management.service';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Admin Candidate Management Module
@@ -19,7 +20,10 @@ import { AdminCandidateManagementService } from './admin-candidate-management.se
  * - Application statistics per candidate
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Candidate, Application])],
+  imports: [
+    TypeOrmModule.forFeature([User, Candidate, Application]),
+    AuthModule,
+  ],
   controllers: [AdminCandidateManagementController],
   providers: [AdminCandidateManagementService],
   exports: [AdminCandidateManagementService],

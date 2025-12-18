@@ -157,7 +157,7 @@ export class AdminJobApprovalService {
         targetType: ApprovalTargetType.JOB_POST,
         targetId: job.id,
         action: ApprovalAction.APPROVED,
-        reason: dto.note || null,
+        reason: dto.note ?? undefined,
       });
       await queryRunner.manager.save(ApprovalLog, approvalLog);
 

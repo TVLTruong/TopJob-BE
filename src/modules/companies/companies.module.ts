@@ -6,14 +6,16 @@ import { Employer } from '../../database/entities/employer.entity'; // 👈 Impo
 import { Job } from '../../database/entities/job.entity'; // 👈 Import "Bản thiết kế"
 import { CompaniesService } from './companies.service';
 import { CompaniesController } from './companies.controller';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     DatabaseModule, // 👈 (Nối "Bảng mạch")
     TypeOrmModule.forFeature([
       Employer, // 👈 "Đăng ký" Entity Cty
-      Job,      // 👈 "Đăng ký" Entity Job
+      Job, // 👈 "Đăng ký" Entity Job
     ]),
+    AuthModule,
   ],
   controllers: [CompaniesController],
   providers: [CompaniesService],

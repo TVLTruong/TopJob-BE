@@ -20,6 +20,7 @@ import {
   Employer,
   OtpVerification,
 } from '../../database/entities';
+import { JwtAuthGuard } from '../../common/guards';
 
 /**
  * Auth Module
@@ -45,6 +46,7 @@ import {
     EmailService,
     OtpService,
     JwtAuthService,
+    JwtAuthGuard,
 
     // Use Cases
     RegisterCandidateUseCase,
@@ -54,6 +56,6 @@ import {
     LogoutUseCase,
     ForgotPasswordUseCase,
   ],
-  exports: [EmailService, OtpService, JwtAuthService],
+  exports: [EmailService, OtpService, JwtAuthService, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}

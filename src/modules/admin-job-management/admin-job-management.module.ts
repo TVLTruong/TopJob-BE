@@ -10,6 +10,7 @@ import {
 } from '../../database/entities';
 import { AdminJobManagementController } from './admin-job-management.controller';
 import { AdminJobManagementService } from './admin-job-management.service';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Admin Job Management Module
@@ -24,6 +25,7 @@ import { AdminJobManagementService } from './admin-job-management.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Job, Employer, JobCategory, EmployerLocation]),
+    AuthModule,
   ],
   controllers: [AdminJobManagementController],
   providers: [AdminJobManagementService],

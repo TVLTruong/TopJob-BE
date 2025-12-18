@@ -1,4 +1,5 @@
 // src/common/utils/query-builder.util.ts
+
 import { SelectQueryBuilder, ObjectLiteral } from 'typeorm';
 import { PaginationResponseDto } from '../dto/pagination-response.dto';
 
@@ -14,13 +15,13 @@ export async function createPaginationResponse<T extends ObjectLiteral>(
     .take(limit)
     .getManyAndCount();
 
-  const totalPages = Math.ceil(total / limit);
-
   return {
     data,
-    total,
-    page,
-    limit,
-    totalPages,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
   };
 }

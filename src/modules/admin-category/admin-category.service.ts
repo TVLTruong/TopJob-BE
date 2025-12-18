@@ -46,7 +46,7 @@ export class AdminCategoryService {
    */
   async getCategoryList(
     query: QueryCategoryDto,
-  ): Promise<PaginationResponseDto<any>> {
+  ): Promise<PaginationResponseDto<JobCategory | CompanyCategory>> {
     const {
       page = 1,
       limit = 10,
@@ -172,7 +172,7 @@ export class AdminCategoryService {
 
       if (type === CategoryType.JOB_CATEGORY) {
         // Validate parent if provided
-        let parent = null;
+        let parent: JobCategory | null = null;
         if (parentId) {
           parent = await this.jobCategoryRepository.findOne({
             where: { id: parentId },
