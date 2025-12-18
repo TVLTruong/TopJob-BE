@@ -19,92 +19,141 @@ export class CompaniesService {
   ) {}
 
   /**
-   * (Dịch từ UC-GUEST-04: Tìm kiếm Công ty )
-   * Lấy danh sách công ty CÔNG KHAI (Public)
+   * PUBLIC API - Tìm kiếm công ty công khai cho Guest/Candidate
+   * UC-GUEST-04: Tìm kiếm công ty
+   * 
+   * Features:
+   * - Chỉ trả về employers có status = ACTIVE
+   * - Tìm kiếm theo company name
+   * - Filter theo city (location), industry, company size
+   * - Pagination: page, limit
+   * - Query tối ưu với QueryBuilder
+   * - Response chuẩn REST (items, total, page, limit)
+   * 
+   * @param dto - Search filters và pagination
+   * @returns Paginated list of employers
    */
   async findAllPublic(
     dto: SearchCompaniesDto,
   ): Promise<PaginationResponseDto<Employer>> {
-    // 1. Tạo QueryBuilder (công cụ truy vấn động)
-    const queryBuilder = this.employerRepo.createQueryBuilder('employer');
+    // 1. Khởi tạo QueryBuilder với relations cần thiết
+    const queryBuilder = this.employerRepo
+      .createQueryBuilder('employer')
+      .leftJoinAndSelect('employer.locations', 'locations');
 
-    // 2. Chỉ lấy công ty "ACTIVE" (Dịch từ UC-GUEST-04, Bước 5 [cite: 272])
+    // 2. Filter cơ bản: Chỉ lấy ACTIVE employers
     queryBuilder.where('employer.status = :status', {
       status: EmployerStatus.ACTIVE,
     });
 
-    // 3. Lọc theo Tên công ty (q) (Dịch từ Bước 3 )
-    if (dto.q) {
-      queryBuilder.andWhere('employer.companyName ILIKE :q', {
-        q: `%${dto.q}%`,
+    // 3. Tìm kiếm theo company name
+    if (dto.keyword && dto.keyword.trim()) {
+      queryBuilder.andWhere('employer.companyName ILIKE :keyword', {
+        keyword: `%${dto.keyword.trim()}%`,
       });
     }
 
-    // 4. Lọc theo Tỉnh/Thành (location) (Dịch từ Bước 3 )
-    if (dto.location) {
-      // (Cần JOIN với Bảng 4 'employer_locations')
-      queryBuilder.innerJoin(
-        'employer.locations',
-        'location',
-        'location.province = :location', // (Giả sử 'location' là Tên Tỉnh/Thành)
-        { location: dto.location },
+    // 4. Filter theo city/province
+    // Tìm employers có ít nhất 1 location ở city được chỉ định
+    if (dto.city && dto.city.trim()) {
+      queryBuilder.andWhere(
+        'EXISTS (SELECT 1 FROM employer_locations el WHERE el.employer_id = employer.id AND el.province ILIKE :city)',
+        { city: `%${dto.city.trim()}%` },
       );
     }
-    
-    // (Bạn có thể thêm lọc theo 'industry' (Ngành nghề) ở đây)
-    // (Cần JOIN với Bảng 6 'employer_industries')
 
-    // 5. Nối dây (JOIN) để lấy địa chỉ (locations) [cite: 247]
-    queryBuilder.leftJoinAndSelect('employer.locations', 'locations');
+    // 5. Filter theo company size
+    if (dto.companySize) {
+      queryBuilder.andWhere('employer.companySize = :companySize', {
+        companySize: dto.companySize,
+      });
+    }
 
-    // 6. Sắp xếp (ví dụ: theo tên)
+    // 6. Filter theo industry (nếu có field trong DB)
+    // Note: Hiện tại employer entity không có industry field
+    // Nếu cần, phải thêm relation với CompanyCategory hoặc thêm industry field
+    if (dto.industry && dto.industry.trim()) {
+      // Placeholder: Có thể search trong description
+      queryBuilder.andWhere('employer.description ILIKE :industry', {
+        industry: `%${dto.industry.trim()}%`,
+      });
+    }
+
+    // 7. Sorting: Sắp xếp theo tên công ty
     queryBuilder.orderBy('employer.companyName', 'ASC');
 
-    // 7. Phân trang (Dịch từ Bước 6 )
-    return createPaginationResponse(
-      queryBuilder,
-      dto.page,
-      dto.limit,
-    );
+    // 8. Pagination và trả về kết quả
+    return createPaginationResponse(queryBuilder, dto.page, dto.limit);
   }
 
   /**
-   * (Dịch từ UC-GUEST-03: Xem hồ sơ công ty )
-   * Lấy 1 hồ sơ công ty CÔNG KHAI bằng ID (hoặc Slug)
+   * PUBLIC API - Xem hồ sơ công ty công khai
+   * UC-GUEST-03: Xem hồ sơ công ty
+   * 
+   * Features:
+   * - Chỉ cho phép xem employers có status = ACTIVE
+   * - Load đầy đủ thông tin công ty và locations
+   * - Xử lý rõ ràng các trường hợp: NOT_FOUND, PENDING_APPROVAL, BANNED
+   * - Trả về thông tin công ty và danh sách office locations
+   * 
+   * @param id - Employer ID
+   * @returns Employer profile với locations
+   * @throws NotFoundException - Company không tồn tại hoặc chưa được duyệt
    */
   async findOnePublic(id: string): Promise<any> {
-    // 1. Truy xuất thông tin Cty (Dịch từ Bước 3 [cite: 247])
+    // 1. Tìm employer (không filter status để xử lý message cụ thể)
     const employer = await this.employerRepo.findOne({
-      where: {
-        id: id,
-        status: EmployerStatus.ACTIVE, // (Dịch từ E1 [cite: 254-256])
-      },
-      relations: [
-        'locations', // (Lấy danh sách địa điểm [cite: 247])
-        // (Bạn có thể JOIN 'industries' (Bảng 6) ở đây)
-      ],
+      where: { id },
+      relations: ['locations'],
     });
 
+    // 2. Employer không tồn tại
     if (!employer) {
-      // (Dịch từ E1 [cite: 254-256])
-      throw new NotFoundException('Hồ sơ công ty này không tồn tại.');
+      throw new NotFoundException(
+        `Không tìm thấy công ty với ID: ${id}`,
+      );
     }
 
-    // 2. Truy xuất các tin tuyển dụng đang hoạt động (Dịch từ Bước 4 [cite: 248])
-    const activeJobs = await this.jobRepo.find({
-      where: {
-        employerId: employer.id,
-        status: JobStatus.ACTIVE, // Chỉ lấy tin ACTIVE
-        deadline: MoreThan(new Date()), // Và còn hạn
-      },
-      order: { isUrgent: 'DESC', publishedAt: 'DESC' }, // Sắp xếp
-      take: 20, // (Giới hạn 20 tin)
-    });
+    // 3. Kiểm tra status - chỉ cho phép ACTIVE
+    if (employer.status !== EmployerStatus.ACTIVE) {
+      // Xử lý các trường hợp cụ thể
+      if (employer.status === EmployerStatus.PENDING_APPROVAL) {
+        throw new NotFoundException(
+          'Hồ sơ công ty này đang chờ phê duyệt.',
+        );
+      }
 
-    // 3. Trả về "Hợp đồng" (contract) cho Frontend
+      if (employer.status === EmployerStatus.BANNED) {
+        throw new NotFoundException(
+          'Hồ sơ công ty này đã bị khóa.',
+        );
+      }
+
+      // Các status khác
+      throw new NotFoundException(
+        'Hồ sơ công ty này không khả dụng.',
+      );
+    }
+
+    // 4. Trả về thông tin công ty với locations
     return {
-      ...employer, // (Toàn bộ thông tin Cty)
-      jobs: activeJobs, // (Danh sách job đang tuyển)
+      id: employer.id,
+      companyName: employer.companyName,
+      description: employer.description,
+      website: employer.website,
+      logoUrl: employer.logoUrl,
+      coverImageUrl: employer.coverImageUrl,
+      foundedYear: employer.foundedYear,
+      companySize: employer.companySize,
+      contactEmail: employer.contactEmail,
+      contactPhone: employer.contactPhone,
+      linkedlnUrl: employer.linkedlnUrl,
+      facebookUrl: employer.facebookUrl,
+      xUrl: employer.xUrl,
+      benefits: employer.benefits,
+      locations: employer.locations,
+      createdAt: employer.createdAt,
+      updatedAt: employer.updatedAt,
     };
   }
 }

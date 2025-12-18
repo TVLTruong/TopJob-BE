@@ -13,6 +13,10 @@ import { EmployerLocation } from '../../database/entities/employer-location.enti
 import { Application } from '../../database/entities/application.entity';
 import { JobStatus, UserStatus } from '../../common/enums'; // 👈 Nối dây (Tool)
 import { SearchJobsDto } from './dto/search-jobs.dto';
+import {
+  PublicSearchJobsDto,
+  JobSortOption,
+} from './dto/public-search-jobs.dto';
 import { CreateJobDto } from './dto/create-job.dto';
 import { CreateJobResponseDto } from './dto/create-job-response.dto';
 import { createPaginationResponse } from '../../common/utils/query-builder.util'; // (Dùng 'tool' chung)
@@ -32,13 +36,103 @@ export class JobsService {
     @InjectRepository(Application)
     private readonly applicationRepo: Repository<Application>,
     // (Bạn có thể inject 'job.repository.ts' (custom) nếu cần)
-  ) { }
+  ) {}
 
   /**
+   * PUBLIC API - Tìm kiếm việc làm công khai cho Guest/Candidate
+   * UC-GUEST-01: Tìm kiếm việc làm
+   *
+   * Features:
+   * - Chỉ trả về jobs có status = ACTIVE và chưa hết hạn
+   * - Tìm kiếm theo keyword (title, description)
+   * - Filter: location, experienceLevel, jobType, salaryMin, salaryMax
+   * - Sort: newest (publishedAt DESC), relevant (isUrgent, isFeatured)
+   * - Pagination: page, limit
+   * - Query tối ưu với QueryBuilder
+   */
+  async findAllPublic(
+    dto: PublicSearchJobsDto,
+  ): Promise<PaginationResponseDto<Job>> {
+    // 1. Khởi tạo QueryBuilder với các relations cần thiết
+    const queryBuilder = this.jobRepo
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.employer', 'employer')
+      .leftJoinAndSelect('job.location', 'location')
+      .leftJoinAndSelect('job.category', 'category');
+
+    // 2. Filter cơ bản: Chỉ lấy ACTIVE jobs và chưa hết hạn
+    queryBuilder
+      .where('job.status = :status', { status: JobStatus.ACTIVE })
+      .andWhere('job.deadline > :now', { now: new Date() });
+
+    // 3. Tìm kiếm theo keyword (title hoặc description)
+    if (dto.keyword && dto.keyword.trim()) {
+      queryBuilder.andWhere(
+        '(job.title ILIKE :keyword OR job.description ILIKE :keyword)',
+        { keyword: `%${dto.keyword.trim()}%` },
+      );
+    }
+
+    // 4. Filter theo location (city/province)
+    if (dto.location && dto.location.trim()) {
+      queryBuilder.andWhere('location.province ILIKE :location', {
+        location: `%${dto.location.trim()}%`,
+      });
+    }
+
+    // 5. Filter theo jobType
+    if (dto.jobType) {
+      queryBuilder.andWhere('job.jobType = :jobType', {
+        jobType: dto.jobType,
+      });
+    }
+
+    // 6. Filter theo experienceLevel
+    if (dto.experienceLevel) {
+      queryBuilder.andWhere('job.experienceLevel = :experienceLevel', {
+        experienceLevel: dto.experienceLevel,
+      });
+    }
+
+    // 7. Filter theo salary range
+    if (dto.salaryMin !== undefined && dto.salaryMin > 0) {
+      // Lấy jobs có salaryMax >= salaryMin của user
+      queryBuilder.andWhere(
+        '(job.salaryMax >= :salaryMin OR job.isNegotiable = true)',
+        { salaryMin: dto.salaryMin },
+      );
+    }
+
+    if (dto.salaryMax !== undefined && dto.salaryMax > 0) {
+      // Lấy jobs có salaryMin <= salaryMax của user
+      queryBuilder.andWhere(
+        '(job.salaryMin <= :salaryMax OR job.isNegotiable = true)',
+        { salaryMax: dto.salaryMax },
+      );
+    }
+
+    // 8. Sorting
+    if (dto.sort === JobSortOption.RELEVANT) {
+      // Sắp xếp theo độ liên quan: ưu tiên isUrgent, isFeatured, sau đó publishedAt
+      queryBuilder
+        .addOrderBy('job.isUrgent', 'DESC')
+        .addOrderBy('job.isFeatured', 'DESC')
+        .addOrderBy('job.publishedAt', 'DESC');
+    } else {
+      // Default: Sắp xếp theo mới nhất
+      queryBuilder.orderBy('job.publishedAt', 'DESC');
+    }
+
+    // 9. Pagination và trả về kết quả
+    return createPaginationResponse(queryBuilder, dto.page, dto.limit);
+  }
+
+  /**
+   * (OLD METHOD - kept for backward compatibility)
    * (Dịch từ UC-GUEST-01: Tìm kiếm việc làm )
    * Lấy danh sách việc làm CÔNG KHAI (Public)
    */
-  async findAllPublic(
+  async findAllPublicOld(
     dto: SearchJobsDto,
   ): Promise<PaginationResponseDto<Job>> {
     // 1. Tạo QueryBuilder (công cụ truy vấn động)
@@ -77,41 +171,112 @@ export class JobsService {
     }
 
     // 7. Phân trang (Dịch từ Bước 5 )
-    return createPaginationResponse(
-      queryBuilder,
-      dto.page,
-      dto.limit,
-    );
+    return createPaginationResponse(queryBuilder, dto.page, dto.limit);
   }
 
   /**
+   * PUBLIC API - Xem chi tiết Job công khai
+   * UC-GUEST-02: Xem chi tiết việc làm
+   * 
+   * Features:
+   * - Hỗ trợ tìm kiếm bằng ID hoặc Slug
+   * - Chỉ cho phép xem jobs có status = ACTIVE
+   * - Load đầy đủ employer profile và location
+   * - Xử lý rõ ràng các trường hợp: EXPIRED, DELETED, NOT_FOUND
+   * - Tự động tăng view count
+   * 
+   * @param identifier - Job ID hoặc Job Slug
+   * @returns Job với đầy đủ thông tin
+   * @throws NotFoundException - Job không tồn tại, đã hết hạn hoặc không active
+   */
+  async findOnePublicByIdentifier(identifier: string): Promise<Job> {
+    // 1. Xác định identifier là ID hay Slug
+    const isNumericId = /^\d+$/.test(identifier);
+
+    // 2. Tìm job theo ID hoặc Slug (không filter status để xử lý message cụ thể)
+    const job = await this.jobRepo.findOne({
+      where: isNumericId
+        ? { id: identifier }
+        : { slug: identifier },
+      relations: [
+        'employer',
+        'employer.user',
+        'location',
+        'category',
+      ],
+    });
+
+    // 3. Job không tồn tại
+    if (!job) {
+      throw new NotFoundException(
+        `Không tìm thấy việc làm với ${isNumericId ? 'ID' : 'slug'}: ${identifier}`,
+      );
+    }
+
+    // 4. Job không phải ACTIVE
+    if (job.status !== JobStatus.ACTIVE) {
+      // Xử lý các trường hợp cụ thể
+      if (job.status === JobStatus.EXPIRED) {
+        throw new NotFoundException(
+          'Tin tuyển dụng này đã hết hạn. Vui lòng tìm việc làm khác.',
+        );
+      }
+
+      if (job.status === JobStatus.CLOSED) {
+        throw new NotFoundException(
+          'Tin tuyển dụng này đã đóng. Công ty đã tuyển đủ người.',
+        );
+      }
+
+      if (job.status === JobStatus.REMOVED_BY_ADMIN) {
+        throw new NotFoundException(
+          'Tin tuyển dụng này đã bị gỡ bởi quản trị viên.',
+        );
+      }
+
+      if (job.status === JobStatus.REJECTED) {
+        throw new NotFoundException(
+          'Tin tuyển dụng này không được phê duyệt.',
+        );
+      }
+
+      // Các status khác (DRAFT, PENDING_APPROVAL, HIDDEN)
+      throw new NotFoundException(
+        'Tin tuyển dụng này không khả dụng.',
+      );
+    }
+
+    // 5. Kiểm tra deadline
+    if (job.deadline && new Date(job.deadline) <= new Date()) {
+      throw new NotFoundException(
+        'Tin tuyển dụng này đã hết hạn ứng tuyển.',
+      );
+    }
+
+    // 6. Tăng view count (async, không chặn response)
+    this.incrementViewCount(job.id).catch((error) => {
+      // Log error nhưng không throw để không ảnh hưởng response
+      console.error(`Failed to increment view count for job ${job.id}:`, error);
+    });
+
+    return job;
+  }
+
+  /**
+   * Tăng view count cho job
+   * Chạy async để không block response
+   */
+  private async incrementViewCount(jobId: string): Promise<void> {
+    await this.jobRepo.increment({ id: jobId }, 'viewCount', 1);
+  }
+
+  /**
+   * @deprecated Use findOnePublicByIdentifier instead
    * (Dịch từ UC-GUEST-02: Xem chi tiết việc làm )
    * Lấy 1 việc làm CÔNG KHAI bằng Slug
    */
   async findOnePublicBySlug(slug: string): Promise<Job> {
-    const job = await this.jobRepo.findOne({
-      where: {
-        slug: slug, // (Dịch từ Bước 2 [cite: 218])
-        status: JobStatus.ACTIVE, // (Dịch từ E1 [cite: 233])
-        deadline: MoreThan(new Date()), // (Dịch từ E1 [cite: 233])
-      },
-      relations: [
-        'employer', // (Dịch từ Bước 3: Thông tin công ty [cite: 219])
-        'location', // (Dịch từ Bước 3: Địa điểm [cite: 219])
-        'category', // (Dịch từ Bước 3: Cấp bậc [cite: 219])
-      ],
-    });
-
-    if (!job) {
-      // (Dịch từ E1 [cite: 232-234])
-      throw new NotFoundException('Tin tuyển dụng này đã hết hạn hoặc không còn tồn tại.');
-    }
-
-    // (Tùy chọn: Tăng view_count ở đây)
-    // job.viewCount++;
-    // await this.jobRepo.save(job);
-
-    return job;
+    return this.findOnePublicByIdentifier(slug);
   }
 
   /**
@@ -269,33 +434,18 @@ export class JobsService {
       await ensureLocation(dto.locationId);
     }
 
-    compareAndSet('title', dto.title as Job['title'] | undefined);
-    compareAndSet('description', dto.description as Job['description'] | undefined);
-    compareAndSet('requirements', dto.requirements as Job['requirements'] | undefined);
-    compareAndSet(
-      'responsibilities',
-      dto.responsibilities as Job['responsibilities'] | undefined,
-    );
-    compareAndSet('niceToHave', dto.niceToHave as Job['niceToHave'] | undefined);
-    compareAndSet('salaryMin', dto.salaryMin as Job['salaryMin'] | undefined);
-    compareAndSet('salaryMax', dto.salaryMax as Job['salaryMax'] | undefined);
-    compareAndSet(
-      'isNegotiable',
-      dto.isNegotiable as Job['isNegotiable'] | undefined,
-    );
-    compareAndSet('jobType', dto.jobType as Job['jobType'] | undefined);
-    compareAndSet(
-      'experienceLevel',
-      dto.experienceLevel as Job['experienceLevel'] | undefined,
-    );
-    compareAndSet(
-      'positionsAvailable',
-      dto.positionsAvailable as Job['positionsAvailable'] | undefined,
-    );
-    compareAndSet(
-      'requiredSkills',
-      dto.requiredSkills as Job['requiredSkills'] | undefined,
-    );
+    compareAndSet('title', dto.title);
+    compareAndSet('description', dto.description);
+    compareAndSet('requirements', dto.requirements);
+    compareAndSet('responsibilities', dto.responsibilities);
+    compareAndSet('niceToHave', dto.niceToHave);
+    compareAndSet('salaryMin', dto.salaryMin);
+    compareAndSet('salaryMax', dto.salaryMax);
+    compareAndSet('isNegotiable', dto.isNegotiable);
+    compareAndSet('jobType', dto.jobType);
+    compareAndSet('experienceLevel', dto.experienceLevel);
+    compareAndSet('positionsAvailable', dto.positionsAvailable);
+    compareAndSet('requiredSkills', dto.requiredSkills);
 
     if (typeof dto.deadline !== 'undefined') {
       const nextDeadline = dto.deadline
@@ -304,8 +454,8 @@ export class JobsService {
       compareAndSet('deadline', nextDeadline as unknown as Job['deadline']);
     }
 
-    compareAndSet('locationId', dto.locationId as Job['locationId'] | undefined);
-    compareAndSet('categoryId', dto.categoryId as Job['categoryId'] | undefined);
+    compareAndSet('locationId', dto.locationId);
+    compareAndSet('categoryId', dto.categoryId);
 
     if (
       typeof dto.title !== 'undefined' &&

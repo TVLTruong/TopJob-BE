@@ -1,21 +1,60 @@
 // src/modules/companies/dto/search-companies.dto.ts
-import { IsOptional, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PaginationDto } from '../../../common/dto/pagination.dto'; // (Dùng 'tool' chung)
+import { IsOptional, IsString, IsEnum } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { CompanySize } from '../../../common/enums';
 
+/**
+ * DTO for Public Company Search (Guest/Candidate)
+ * UC-GUEST-04: Tìm kiếm công ty
+ */
 export class SearchCompaniesDto extends PaginationDto {
-  // (Dịch từ Bước 3: "Tìm kiếm (theo Tên công ty)")
+  /**
+   * Từ khóa tìm kiếm (company name)
+   * @example "Tech Company"
+   */
+  @ApiPropertyOptional({
+    description: 'Từ khóa tìm kiếm trong tên công ty',
+    example: 'Tech Company',
+  })
   @IsOptional()
   @IsString()
-  q?: string; // (Từ khóa)
+  keyword?: string;
 
-  // (Dịch từ Bước 3: "bộ lọc (theo Tỉnh/Thành)")
+  /**
+   * Lọc theo city/province
+   * @example "Hồ Chí Minh"
+   */
+  @ApiPropertyOptional({
+    description: 'Lọc theo tỉnh/thành phố',
+    example: 'Hồ Chí Minh',
+  })
   @IsOptional()
   @IsString()
-  location?: string; // (Chúng ta sẽ dùng Tỉnh/Thành slug)
+  city?: string;
 
-  // (Dịch từ Bước 3: "Ngành nghề")
+  /**
+   * Lọc theo industry (ngành nghề)
+   * @example "Information Technology"
+   */
+  @ApiPropertyOptional({
+    description: 'Lọc theo ngành nghề',
+    example: 'Information Technology',
+  })
   @IsOptional()
   @IsString()
-  industry?: string; // (Chúng ta sẽ dùng Ngành nghề slug)
+  industry?: string;
+
+  /**
+   * Lọc theo quy mô công ty
+   * @example "medium"
+   */
+  @ApiPropertyOptional({
+    description: 'Lọc theo quy mô công ty',
+    enum: CompanySize,
+    example: CompanySize.MEDIUM,
+  })
+  @IsOptional()
+  @IsEnum(CompanySize)
+  companySize?: CompanySize;
 }

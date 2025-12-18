@@ -24,6 +24,12 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { ApplicationsModule } from './modules/applications/applications.module';
 import { SavedJobsModule } from './modules/saved-jobs/saved-jobs.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AdminEmployerApprovalModule } from './modules/admin-employer-approval/admin-employer-approval.module';
+import { AdminJobApprovalModule } from './modules/admin-job-approval/admin-job-approval.module';
+import { AdminEmployerManagementModule } from './modules/admin-employer-management/admin-employer-management.module';
+import { AdminCandidateManagementModule } from './modules/admin-candidate-management/admin-candidate-management.module';
+import { AdminJobManagementModule } from './modules/admin-job-management/admin-job-management.module';
+import { AdminCategoryModule } from './modules/admin-category/admin-category.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { QueueModule } from './modules/queue/queue.module';
@@ -123,6 +129,18 @@ import { HealthModule } from './modules/health/health.module';
     SavedJobsModule,
 
     AdminModule,
+
+    AdminEmployerApprovalModule,
+
+    AdminJobApprovalModule,
+
+    AdminEmployerManagementModule,
+
+    AdminCandidateManagementModule,
+
+    AdminJobManagementModule,
+
+    AdminCategoryModule,
 
     NotificationsModule,
 
