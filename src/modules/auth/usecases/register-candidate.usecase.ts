@@ -3,7 +3,7 @@
 import {
   Injectable,
   ConflictException,
-  BadRequestException,
+  // BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -36,7 +36,7 @@ export class RegisterCandidateUseCase {
    * @param dto Registration data
    */
   async execute(dto: RegisterCandidateDto): Promise<RegisterResponseDto> {
-    this.validateRegistrationData(dto);
+    // this.validateRegistrationData(dto);
     await this.checkEmailNotExists(dto.email);
 
     const user = await this.createUserAndCandidate(dto);
@@ -54,12 +54,12 @@ export class RegisterCandidateUseCase {
   }
 
   /** Validate registration input */
-  private validateRegistrationData(dto: RegisterCandidateDto): void {
-    if (dto.password !== dto.confirmPassword) {
-      throw new BadRequestException('Mật khẩu xác nhận không khớp');
-    }
-    // Additional validations handled by DTO decorators
-  }
+  // private validateRegistrationData(dto: RegisterCandidateDto): void {
+  //   if (dto.password !== dto.confirmPassword) {
+  //     throw new BadRequestException('Mật khẩu xác nhận không khớp');
+  //   }
+  //   // Additional validations handled by DTO decorators
+  // }
 
   /** Ensure email is not already used */
   private async checkEmailNotExists(email: string): Promise<void> {

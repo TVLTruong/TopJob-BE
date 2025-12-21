@@ -13,6 +13,8 @@ async function bootstrap() {
   app.enableCors({
     origin: configService.get<string>('app.corsOrigin'),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global validation pipe
@@ -75,7 +77,7 @@ async function bootstrap() {
     `,
   });
 
-  const port = configService.get<number>('app.port') || 3000;
+  const port = configService.get<number>('app.port') || 3001;
   await app.listen(port);
 
   console.log(`
