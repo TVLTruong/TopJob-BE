@@ -121,9 +121,9 @@ export class AuthController {
   /**
    * UC-REG-03: Verify Email Registration
    * UC-AUTH-03: Verify OTP for Password Reset
-   * POST /auth/verify-email
+   * POST /auth/verify-otp
    */
-  @Post('verify-email')
+  @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Xác thực OTP',
