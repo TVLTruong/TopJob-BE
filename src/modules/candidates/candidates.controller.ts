@@ -14,6 +14,7 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
+  ParseFilePipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -23,6 +24,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { CandidatesService } from './candidates.service';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
@@ -65,7 +67,8 @@ export class CandidatesController {
   @Roles(UserRole.CANDIDATE)
   @ApiOperation({
     summary: 'Lấy thông tin hồ sơ ứng viên của tôi',
-    description: 'Lấy thông tin hồ sơ ứng viên của user đang đăng nhập.',
+    description:
+      'Lấy thông tin hồ sơ ứng viên của candidate đang đăng nhập. Dùng để candidate quản lý hồ sơ của chính mình.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -126,6 +129,18 @@ export class CandidatesController {
     summary: 'Upload ảnh đại diện',
     description: 'Upload ảnh đại diện cho ứng viên',
   })
+  @ApiBody({
+    description: 'File ảnh đại diện (jpg, png, gif, webp - max 5MB)',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Upload thành công',
@@ -141,7 +156,12 @@ export class CandidatesController {
   })
   async uploadAvatar(
     @CurrentUser() user: JwtPayload,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: true,
+      }),
+    )
+    file: Express.Multer.File,
   ): Promise<UploadAvatarResponseDto> {
     return this.candidatesService.uploadAvatar(user.sub, file);
   }
@@ -397,13 +417,15 @@ export class CandidatesController {
   }
 
   /**
-   * Get candidate profile by ID (public or admin)
+   * Get candidate profile by ID (Employer/Admin only)
    * GET /candidates/:id
    */
   @Get(':id')
+  @Roles(UserRole.EMPLOYER, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Lấy thông tin hồ sơ ứng viên theo ID',
-    description: 'Lấy thông tin công khai của ứng viên',
+    description:
+      'Lấy thông tin công khai của ứng viên. Chỉ dành cho Employer và Admin. Employer sử dụng để xem hồ sơ candidate khi review đơn ứng tuyển.',
   })
   @ApiParam({
     name: 'id',

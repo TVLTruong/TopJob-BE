@@ -3,10 +3,12 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   HttpCode,
   HttpStatus,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +16,7 @@ import {
   ApiResponse,
   ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import {
   RegisterCandidateUseCase,
@@ -32,10 +35,14 @@ import {
   ResendOtpDto,
   LoginDto,
   LoginResponseDto,
+  CurrentUserResponseDto,
   ForgotPasswordDto,
   ResetPasswordDto,
   ForgotPasswordResponseDto,
 } from './dto';
+import { JwtAuthGuard } from '../../common/guards';
+import { CurrentUser } from '../../common/decorators';
+import type { JwtPayload } from './services/jwt.service';
 
 /**
  * Auth Controller
@@ -199,6 +206,38 @@ export class AuthController {
     dto: LoginDto,
   ): Promise<LoginResponseDto> {
     return await this.loginUseCase.execute(dto);
+  }
+
+  /**
+   * Get Current User Info
+   * GET /auth/me
+   * For testing: Check current user's role and status
+   */
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Lấy thông tin user hiện tại',
+    description: 'Lấy thông tin user từ JWT token (dùng để test role)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Thành công',
+    type: CurrentUserResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Chưa đăng nhập hoặc token không hợp lệ',
+  })
+  getCurrentUser(@CurrentUser() user: JwtPayload): CurrentUserResponseDto {
+    return {
+      id: user.sub,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      iat: user.iat ?? 0,
+      exp: user.exp ?? 0,
+    };
   }
 
   /**

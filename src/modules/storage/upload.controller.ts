@@ -97,6 +97,27 @@ export class UploadController {
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload ảnh bìa công ty',
+    description: 'Upload ảnh bìa công ty lên Cloudinary và trả về URL',
+  })
+  @ApiBody({
+    description: 'File ảnh bìa (jpg, png, gif, webp - max 5MB)',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Upload thành công',
+    type: UploadResponseDto,
+  })
   async uploadCompanyCover(
     @UploadedFile(
       new ParseFilePipe({
@@ -106,46 +127,6 @@ export class UploadController {
     file: Express.Multer.File,
   ): Promise<UploadResponseDto> {
     const { url } = await this.storageService.uploadCompanyCover(file);
-    return this.buildUploadResponse(url, file);
-  }
-
-  /* -------------------------------------------------------------------------- */
-  /*                             Candidate avatar                                */
-  /* -------------------------------------------------------------------------- */
-
-  @Post('avatar')
-  @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  async uploadAvatar(
-    @UploadedFile(
-      new ParseFilePipe({
-        fileIsRequired: true,
-      }),
-    )
-    file: Express.Multer.File,
-  ): Promise<UploadResponseDto> {
-    const { url } = await this.storageService.uploadCandidateAvatar(file);
-    return this.buildUploadResponse(url, file);
-  }
-
-  /* -------------------------------------------------------------------------- */
-  /*                                   CV                                       */
-  /* -------------------------------------------------------------------------- */
-
-  @Post('cv')
-  @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  async uploadCV(
-    @UploadedFile(
-      new ParseFilePipe({
-        fileIsRequired: true,
-      }),
-    )
-    file: Express.Multer.File,
-  ): Promise<UploadResponseDto> {
-    const { url } = await this.storageService.uploadCV(file);
     return this.buildUploadResponse(url, file);
   }
 }

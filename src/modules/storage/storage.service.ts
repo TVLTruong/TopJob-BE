@@ -102,6 +102,51 @@ export class StorageService {
     }
   }
 
+  /**
+   * Delete image from Cloudinary by URL
+   * Extracts publicId from Cloudinary URL and deletes the file
+   */
+  async deleteImageByUrl(imageUrl: string): Promise<void> {
+    if (!imageUrl) return;
+
+    try {
+      // Extract publicId from Cloudinary URL
+      // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{publicId}.{format}
+      // or: https://res.cloudinary.com/{cloud_name}/image/upload/{folder}/{publicId}.{format}
+      const urlParts = imageUrl.split('/');
+      const uploadIndex = urlParts.indexOf('upload');
+
+      if (uploadIndex === -1) {
+        this.logger.warn('Invalid Cloudinary URL format', { imageUrl });
+        return;
+      }
+
+      // Get everything after 'upload/', skip version if exists (starts with 'v')
+      let pathParts = urlParts.slice(uploadIndex + 1);
+      if (pathParts[0] && pathParts[0].startsWith('v')) {
+        pathParts = pathParts.slice(1); // Skip version
+      }
+
+      // Remove file extension from last part
+      const lastPart = pathParts[pathParts.length - 1];
+      const fileNameWithoutExt = lastPart.split('.')[0];
+      pathParts[pathParts.length - 1] = fileNameWithoutExt;
+
+      // Join to get full publicId with folder
+      const publicId = pathParts.join('/');
+
+      await this.deleteFile(publicId);
+      this.logger.log(`Deleted image: ${publicId}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.warn('Failed to delete image by URL', {
+        imageUrl,
+        message,
+      });
+      // Don't throw - we want to continue even if deletion fails
+    }
+  }
+
   // ======================
   // Helpers
   // ======================

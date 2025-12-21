@@ -135,7 +135,12 @@ export class CandidateProfileService {
       throw new NotFoundException('Không tìm thấy hồ sơ ứng viên');
     }
 
-    // Upload file to Cloudinary
+    // Delete old avatar from Cloudinary if exists
+    if (candidate.avatarUrl) {
+      await this.storageService.deleteImageByUrl(candidate.avatarUrl);
+    }
+
+    // Upload new avatar to Cloudinary
     const uploadResult = await this.storageService.uploadCandidateAvatar(file);
 
     // Update candidate avatar URL
