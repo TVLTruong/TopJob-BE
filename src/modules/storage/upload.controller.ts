@@ -129,4 +129,86 @@ export class UploadController {
     const { url } = await this.storageService.uploadCompanyCover(file);
     return this.buildUploadResponse(url, file);
   }
+
+  /* -------------------------------------------------------------------------- */
+  /*                           Candidate avatar                                 */
+  /* -------------------------------------------------------------------------- */
+
+  @Post('candidate-avatar')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload ảnh đại diện ứng viên',
+    description: 'Upload ảnh đại diện ứng viên lên Cloudinary và trả về URL',
+  })
+  @ApiBody({
+    description: 'File ảnh đại diện (jpg, png, gif, webp - max 5MB)',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Upload thành công',
+    type: UploadResponseDto,
+  })
+  async uploadCandidateAvatar(
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: true,
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<UploadResponseDto> {
+    const { url } = await this.storageService.uploadCandidateAvatar(file);
+    return this.buildUploadResponse(url, file);
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                              Candidate CV                                  */
+  /* -------------------------------------------------------------------------- */
+
+  @Post('candidate-cv')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload CV ứng viên',
+    description: 'Upload file CV (PDF) lên Cloudinary và trả về URL',
+  })
+  @ApiBody({
+    description: 'File CV (PDF - max 10MB)',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Upload thành công',
+    type: UploadResponseDto,
+  })
+  async uploadCandidateCv(
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: true,
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<UploadResponseDto> {
+    const { url } = await this.storageService.uploadCV(file);
+    return this.buildUploadResponse(url, file);
+  }
 }
