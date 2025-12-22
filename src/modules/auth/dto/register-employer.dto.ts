@@ -9,7 +9,7 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { MatchPassword } from '../validators/match-password.validator';
+// import { MatchPassword } from '../validators/match-password.validator';
 
 /**
  * DTO for Employer Registration (UC-REG-02)
@@ -75,12 +75,12 @@ export class RegisterEmployerDto {
   })
   password: string;
 
-  @ApiProperty({
-    description: 'Xác nhận mật khẩu (phải khớp với mật khẩu)',
-    example: 'Password@123',
-  })
-  @IsNotEmpty({ message: 'Xác nhận mật khẩu không được để trống' })
-  @IsString({ message: 'Xác nhận mật khẩu phải là chuỗi ký tự' })
-  @MatchPassword('password', { message: 'Mật khẩu xác nhận không khớp' })
-  confirmPassword: string;
+  // @ApiProperty({
+  //   description: 'Xác nhận mật khẩu (phải khớp với mật khẩu)',
+  //   example: 'Password@123',
+  // })
+  // @IsNotEmpty({ message: 'Xác nhận mật khẩu không được để trống' })
+  // @IsString({ message: 'Xác nhận mật khẩu phải là chuỗi ký tự' })
+  // @MatchPassword('password', { message: 'Mật khẩu xác nhận không khớp' })
+  // confirmPassword: string;
 }

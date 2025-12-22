@@ -28,4 +28,3 @@ export class SubmitEmployerProfileResponseDto {
   })
   redirectUrl: string;
 }
-

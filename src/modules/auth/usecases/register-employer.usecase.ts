@@ -3,7 +3,7 @@
 import {
   Injectable,
   ConflictException,
-  BadRequestException,
+  // BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -41,7 +41,7 @@ export class RegisterEmployerUseCase {
    * @param dto Registration data
    */
   async execute(dto: RegisterEmployerDto): Promise<RegisterResponseDto> {
-    this.validateRegistrationData(dto);
+    // this.validateRegistrationData(dto);
     await this.checkEmailNotExists(dto.email);
 
     const user = await this.createUserAndEmployer(dto);
@@ -59,12 +59,12 @@ export class RegisterEmployerUseCase {
   }
 
   /** Validate registration input */
-  private validateRegistrationData(dto: RegisterEmployerDto): void {
-    if (dto.password !== dto.confirmPassword) {
-      throw new BadRequestException('Mật khẩu xác nhận không khớp');
-    }
-    // Additional validation handled by DTO decorators
-  }
+  // private validateRegistrationData(dto: RegisterEmployerDto): void {
+  //   if (dto.password !== dto.confirmPassword) {
+  //     throw new BadRequestException('Mật khẩu xác nhận không khớp');
+  //   }
+  //   // Additional validation handled by DTO decorators
+  // }
 
   /** Ensure email is not already used */
   private async checkEmailNotExists(email: string): Promise<void> {
@@ -102,7 +102,7 @@ export class RegisterEmployerUseCase {
         companyName: dto.companyName,
         contactPhone: dto.contactPhone,
         contactEmail: dto.email.toLowerCase(),
-        profileStatus: EmployerProfileStatus.APPROVED, // initial profile status
+        profileStatus: EmployerProfileStatus.PENDING_EDIT_APPROVAL, // Will be APPROVED after profile completion
       });
       await queryRunner.manager.save(Employer, employer);
 
