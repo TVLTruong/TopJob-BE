@@ -14,7 +14,13 @@ async function bootstrap() {
     origin: configService.get<string>('app.corsOrigin'),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'cache-control',
+      'pragma',
+      'expires',
+    ],
   });
 
   // Global validation pipe

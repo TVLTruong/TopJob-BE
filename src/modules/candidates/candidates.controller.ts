@@ -30,7 +30,7 @@ import { CandidatesService } from './candidates.service';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { UserRole } from '../../common/enums';
-import type { JwtPayload } from '../auth/services/jwt.service';
+import type { AuthenticatedUser } from '../../common/types/express';
 import { Job, Application } from '../../database/entities';
 import {
   UpdateCandidateProfileDto,
@@ -80,9 +80,9 @@ export class CandidatesController {
     description: 'Không tìm thấy hồ sơ ứng viên',
   })
   async getMyProfile(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<CandidateProfileResponseDto> {
-    return this.candidatesService.getProfileByUserId(user.sub);
+    return this.candidatesService.getProfileByUserId(user.id);
   }
 
   /**
@@ -110,10 +110,10 @@ export class CandidatesController {
     description: 'Dữ liệu không hợp lệ',
   })
   async updateMyProfile(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateCandidateProfileDto,
   ): Promise<CandidateProfileResponseDto> {
-    return this.candidatesService.updateProfile(user.sub, dto);
+    return this.candidatesService.updateProfile(user.id, dto);
   }
 
   /**
@@ -155,7 +155,7 @@ export class CandidatesController {
     description: 'Không tìm thấy hồ sơ ứng viên',
   })
   async uploadAvatar(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @UploadedFile(
       new ParseFilePipe({
         fileIsRequired: true,
@@ -163,7 +163,7 @@ export class CandidatesController {
     )
     file: Express.Multer.File,
   ): Promise<UploadAvatarResponseDto> {
-    return this.candidatesService.uploadAvatar(user.sub, file);
+    return this.candidatesService.uploadAvatar(user.id, file);
   }
 
   /**
@@ -188,10 +188,10 @@ export class CandidatesController {
     description: 'Đã đạt giới hạn số lượng CV hoặc dữ liệu không hợp lệ',
   })
   async uploadCv(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UploadCvDto,
   ): Promise<CandidateProfileResponseDto> {
-    return this.candidatesService.uploadCv(user.sub, dto);
+    return this.candidatesService.uploadCv(user.id, dto);
   }
 
   /**
@@ -208,8 +208,8 @@ export class CandidatesController {
     status: HttpStatus.OK,
     description: 'Thành công',
   })
-  async getMyCvs(@CurrentUser() user: JwtPayload) {
-    return this.candidatesService.getCvs(user.sub);
+  async getMyCvs(@CurrentUser() user: AuthenticatedUser) {
+    return this.candidatesService.getCvs(user.id);
   }
 
   // /**
@@ -228,10 +228,10 @@ export class CandidatesController {
   //   type: CandidateProfileResponseDto,
   // })
   // async setDefaultCv(
-  //   @CurrentUser() user: JwtPayload,
+  //   @CurrentUser() user: AuthenticatedUser,
   //   @Body() dto: SetDefaultCvDto,
   // ): Promise<CandidateProfileResponseDto> {
-  //   return this.candidatesService.setDefaultCv(user.sub, dto.cvId);
+  //   return this.candidatesService.setDefaultCv(user.id, dto.cvId);
   // }
 
   /**
@@ -260,10 +260,10 @@ export class CandidatesController {
     description: 'Không tìm thấy CV hoặc CV không thuộc về ứng viên',
   })
   async setDefaultCvById(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('cvId') cvId: string,
   ): Promise<SetDefaultCvResponseDto> {
-    return this.candidatesService.setDefaultCvWithMessage(user.sub, cvId);
+    return this.candidatesService.setDefaultCvWithMessage(user.id, cvId);
   }
 
   /**
@@ -290,10 +290,10 @@ export class CandidatesController {
     description: 'Không tìm thấy CV',
   })
   async deleteCv(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('cvId') cvId: string,
   ): Promise<DeleteCvResponseDto> {
-    return this.candidatesService.deleteCvWithMessage(user.sub, cvId);
+    return this.candidatesService.deleteCvWithMessage(user.id, cvId);
   }
 
   /**
@@ -315,8 +315,8 @@ export class CandidatesController {
     status: HttpStatus.NOT_FOUND,
     description: 'Không tìm thấy hồ sơ ứng viên',
   })
-  async getSavedJobs(@CurrentUser() user: JwtPayload): Promise<Job[]> {
-    return this.candidatesService.getSavedJobs(user.sub);
+  async getSavedJobs(@CurrentUser() user: AuthenticatedUser): Promise<Job[]> {
+    return this.candidatesService.getSavedJobs(user.id);
   }
 
   /**
@@ -346,10 +346,10 @@ export class CandidatesController {
     description: 'Không tìm thấy công việc hoặc hồ sơ ứng viên',
   })
   async toggleSavedJob(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
   ): Promise<ToggleSavedJobResponseDto> {
-    return this.candidatesService.toggleSavedJob(user.sub, jobId);
+    return this.candidatesService.toggleSavedJob(user.id, jobId);
   }
 
   /**
@@ -384,11 +384,11 @@ export class CandidatesController {
     description: 'Không tìm thấy công việc hoặc hồ sơ ứng viên',
   })
   async applyJob(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
     @Body() dto: ApplyJobDto,
   ): Promise<ApplyJobResponseDto> {
-    return this.candidatesService.applyJob(user.sub, jobId, dto);
+    return this.candidatesService.applyJob(user.id, jobId, dto);
   }
 
   /**
@@ -411,9 +411,9 @@ export class CandidatesController {
     description: 'Không tìm thấy hồ sơ ứng viên',
   })
   async getApplications(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<Application[]> {
-    return this.candidatesService.getApplications(user.sub);
+    return this.candidatesService.getApplications(user.id);
   }
 
   /**
