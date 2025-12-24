@@ -125,10 +125,9 @@ export class AdminJobApprovalService {
     await queryRunner.startTransaction();
 
     try {
-      // Lock job record for update
+      // Lock job record for update (without relations to avoid outer join issue)
       const job = await queryRunner.manager.findOne(Job, {
         where: { id: jobId },
-        relations: ['employer'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -137,6 +136,15 @@ export class AdminJobApprovalService {
           `Không tìm thấy tin tuyển dụng với ID: ${jobId}`,
         );
       }
+
+      // Load relations separately after locking
+      const jobWithRelations = await queryRunner.manager.findOne(Job, {
+        where: { id: jobId },
+        relations: ['employer'],
+      });
+
+      // Use the locked job but with relations data
+      Object.assign(job, jobWithRelations);
 
       // Validate current status
       if (job.status !== JobStatus.PENDING_APPROVAL) {
@@ -196,10 +204,9 @@ export class AdminJobApprovalService {
     await queryRunner.startTransaction();
 
     try {
-      // Lock job record for update
+      // Lock job record for update (without relations to avoid outer join issue)
       const job = await queryRunner.manager.findOne(Job, {
         where: { id: jobId },
-        relations: ['employer', 'employer.user'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -208,6 +215,15 @@ export class AdminJobApprovalService {
           `Không tìm thấy tin tuyển dụng với ID: ${jobId}`,
         );
       }
+
+      // Load relations separately after locking
+      const jobWithRelations = await queryRunner.manager.findOne(Job, {
+        where: { id: jobId },
+        relations: ['employer', 'employer.user'],
+      });
+
+      // Use the locked job but with relations data
+      Object.assign(job, jobWithRelations);
 
       // Validate current status
       if (job.status !== JobStatus.PENDING_APPROVAL) {

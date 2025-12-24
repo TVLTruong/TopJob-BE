@@ -209,6 +209,17 @@ export class UpdateEmployerProfileDto {
   @IsString({ each: true, message: 'Mỗi phúc lợi phải là chuỗi' })
   benefits?: string[];
 
+  // Technologies
+  @ApiPropertyOptional({
+    description: 'Danh sách công nghệ sử dụng',
+    example: ['React', 'Node.js', 'PostgreSQL', 'Docker'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray({ message: 'Công nghệ phải là mảng' })
+  @IsString({ each: true, message: 'Mỗi công nghệ phải là chuỗi' })
+  technologies?: string[];
+
   // Locations
   @ApiPropertyOptional({
     description: 'Danh sách địa điểm văn phòng',

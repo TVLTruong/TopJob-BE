@@ -260,6 +260,7 @@ export class EmployersService {
         facebookUrl: dto.facebookUrl ?? employer.facebookUrl,
         xUrl: dto.xUrl ?? employer.xUrl,
         benefits: dto.benefits ?? employer.benefits,
+        technologies: dto.technologies ?? employer.technologies,
       });
 
       // Auto approve
@@ -494,6 +495,7 @@ export class EmployersService {
         facebookUrl: dto.facebookUrl ?? employer.facebookUrl,
         xUrl: dto.xUrl ?? employer.xUrl,
         benefits: dto.benefits ?? employer.benefits,
+        technologies: dto.technologies ?? employer.technologies,
       });
 
       await queryRunner.manager.save(employer);
@@ -791,6 +793,7 @@ export class EmployersService {
       status: employer.status,
       profileStatus: employer.profileStatus,
       benefits: employer.benefits,
+      technologies: employer.technologies,
       locations: employer.locations?.map((loc) =>
         this.mapToLocationResponse(loc),
       ),

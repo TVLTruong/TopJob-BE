@@ -32,6 +32,7 @@ import {
   ApproveEmployerDto,
   RejectEmployerDto,
 } from './dto';
+import { EmployerEmailService } from '../auth/services/employer-email.service';
 
 /**
  * Admin Employer Approval Service
@@ -55,6 +56,7 @@ export class AdminEmployerApprovalService {
     @InjectRepository(ApprovalLog)
     private readonly approvalLogRepository: Repository<ApprovalLog>,
     private readonly dataSource: DataSource,
+    private readonly employerEmailService: EmployerEmailService,
   ) {}
 
   /**
@@ -77,24 +79,20 @@ export class AdminEmployerApprovalService {
       queryBuilder.andWhere('employer.status = :status', { status });
     } else {
       // Default: Show both pending approval statuses
-      queryBuilder.andWhere('employer.status IN (:...statuses)', {
-        statuses: [EmployerStatus.PENDING_APPROVAL, EmployerStatus.ACTIVE],
-      });
+      queryBuilder.andWhere(
+        '(employer.status = :pendingStatus OR (employer.status = :activeStatus AND employer.profileStatus = :pendingEditStatus))',
+        {
+          pendingStatus: EmployerStatus.PENDING_APPROVAL,
+          activeStatus: EmployerStatus.ACTIVE,
+          pendingEditStatus: EmployerProfileStatus.PENDING_EDIT_APPROVAL,
+        },
+      );
     }
 
     if (profileStatus) {
       queryBuilder.andWhere('employer.profileStatus = :profileStatus', {
         profileStatus,
       });
-    } else {
-      // Also include pending edit approvals
-      queryBuilder.andWhere(
-        '(employer.status = :pendingStatus OR employer.profileStatus = :pendingEditStatus)',
-        {
-          pendingStatus: EmployerStatus.PENDING_APPROVAL,
-          pendingEditStatus: EmployerProfileStatus.PENDING_EDIT_APPROVAL,
-        },
-      );
     }
 
     // Order by creation date (oldest first - FIFO)
@@ -123,7 +121,7 @@ export class AdminEmployerApprovalService {
   async getEmployerDetail(employerId: string): Promise<EmployerDetailDto> {
     const employer = await this.employerRepository.findOne({
       where: { id: employerId },
-      relations: ['user', 'pendingEdits'],
+      relations: ['user', 'pendingEdits', 'locations'],
     });
 
     if (!employer) {
@@ -172,10 +170,9 @@ export class AdminEmployerApprovalService {
     await queryRunner.startTransaction();
 
     try {
-      // Lock employer record for update
+      // Lock employer record for update (without relations to avoid outer join issue)
       const employer = await queryRunner.manager.findOne(Employer, {
         where: { id: employerId },
-        relations: ['user', 'pendingEdits'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -185,16 +182,39 @@ export class AdminEmployerApprovalService {
         );
       }
 
+      // Load relations separately after locking
+      const employerWithRelations = await queryRunner.manager.findOne(
+        Employer,
+        {
+          where: { id: employerId },
+          relations: ['user', 'pendingEdits'],
+        },
+      );
+
+      // Use the locked employer but with relations data
+      Object.assign(employer, employerWithRelations);
       const user = employer.user;
       let approvalTarget: ApprovalTargetType;
       let statusMessage: string;
+
+      // Debug logging
+      this.logger.debug(
+        `Employer status: ${employer.status}, profileStatus: ${employer.profileStatus}`,
+      );
+      this.logger.debug(
+        `Pending edits count: ${employer.pendingEdits?.length || 0}`,
+      );
+      this.logger.debug(`User status: ${user?.status || 'NO USER'}`);
 
       // Case 1: New employer profile approval
       if (employer.status === EmployerStatus.PENDING_APPROVAL) {
         // Validate user status
         if (user.status !== UserStatus.PENDING_APPROVAL) {
+          this.logger.error(
+            `User status validation failed. Expected: ${UserStatus.PENDING_APPROVAL}, Got: ${user.status}`,
+          );
           throw new BadRequestException(
-            `Trạng thái user không hợp lệ. Hiện tại: ${user.status}`,
+            `Trạng thái user không hợp lệ. Hiện tại: ${user.status}, yêu cầu: ${UserStatus.PENDING_APPROVAL}`,
           );
         }
 
@@ -214,34 +234,46 @@ export class AdminEmployerApprovalService {
       else if (
         employer.profileStatus === EmployerProfileStatus.PENDING_EDIT_APPROVAL
       ) {
+        // Handle edge case: profileStatus is PENDING_EDIT_APPROVAL but no pending edits
         if (!employer.pendingEdits?.length) {
-          throw new BadRequestException(
-            'Không có chỉnh sửa nào đang chờ duyệt',
+          this.logger.warn(
+            `Employer ${employerId} has profileStatus PENDING_EDIT_APPROVAL but no pending edits. Resetting to APPROVED.`,
+          );
+
+          // Reset profile status to APPROVED
+          employer.profileStatus = EmployerProfileStatus.APPROVED;
+
+          approvalTarget = ApprovalTargetType.EMPLOYER_PROFILE_EDIT;
+          statusMessage =
+            'Đã cập nhật trạng thái hồ sơ (không có thay đổi nào chờ duyệt)';
+
+          this.logger.log(
+            `Reset employer profileStatus to APPROVED: ${employerId} by admin: ${adminId}`,
+          );
+        } else {
+          // Apply pending edits to employer
+          for (const edit of employer.pendingEdits) {
+            const fieldName = edit.fieldName;
+            if (fieldName in employer) {
+              employer[fieldName as keyof Employer] = edit.newValue as never;
+            }
+          }
+
+          // Delete pending edits
+          await queryRunner.manager.delete(EmployerPendingEdit, {
+            employerId: employer.id,
+          });
+
+          // Update profile status
+          employer.profileStatus = EmployerProfileStatus.APPROVED;
+
+          approvalTarget = ApprovalTargetType.EMPLOYER_PROFILE_EDIT;
+          statusMessage = 'Đã duyệt chỉnh sửa hồ sơ nhà tuyển dụng';
+
+          this.logger.log(
+            `Approved employer edits: ${employerId} by admin: ${adminId}`,
           );
         }
-
-        // Apply pending edits to employer
-        for (const edit of employer.pendingEdits) {
-          const fieldName = edit.fieldName;
-          if (fieldName in employer) {
-            employer[fieldName as keyof Employer] = edit.newValue as never;
-          }
-        }
-
-        // Delete pending edits
-        await queryRunner.manager.delete(EmployerPendingEdit, {
-          employerId: employer.id,
-        });
-
-        // Update profile status
-        employer.profileStatus = EmployerProfileStatus.APPROVED;
-
-        approvalTarget = ApprovalTargetType.EMPLOYER_PROFILE_EDIT;
-        statusMessage = 'Đã duyệt chỉnh sửa hồ sơ nhà tuyển dụng';
-
-        this.logger.log(
-          `Approved employer edits: ${employerId} by admin: ${adminId}`,
-        );
       } else {
         throw new BadRequestException(
           'Nhà tuyển dụng không ở trạng thái chờ duyệt',
@@ -263,6 +295,23 @@ export class AdminEmployerApprovalService {
       await queryRunner.manager.save(ApprovalLog, approvalLog);
 
       await queryRunner.commitTransaction();
+
+      // Send email notification after successful approval
+      const isNewProfile =
+        approvalTarget === ApprovalTargetType.EMPLOYER_PROFILE;
+      try {
+        await this.employerEmailService.sendEmployerApprovalEmail(
+          user.email,
+          employer.companyName,
+          isNewProfile,
+        );
+        this.logger.log(`Approval email sent to ${user.email}`);
+      } catch (emailError) {
+        this.logger.error(
+          `Failed to send approval email: ${(emailError as Error).message}`,
+        );
+        // Don't fail the whole operation if email fails
+      }
 
       return {
         message: statusMessage,
@@ -294,10 +343,9 @@ export class AdminEmployerApprovalService {
     await queryRunner.startTransaction();
 
     try {
-      // Lock employer record for update
+      // Lock employer record for update (without relations to avoid outer join issue)
       const employer = await queryRunner.manager.findOne(Employer, {
         where: { id: employerId },
-        relations: ['user', 'pendingEdits'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -307,6 +355,17 @@ export class AdminEmployerApprovalService {
         );
       }
 
+      // Load relations separately after locking
+      const employerWithRelations = await queryRunner.manager.findOne(
+        Employer,
+        {
+          where: { id: employerId },
+          relations: ['user', 'pendingEdits'],
+        },
+      );
+
+      // Use the locked employer but with relations data
+      Object.assign(employer, employerWithRelations);
       const user = employer.user;
       let approvalTarget: ApprovalTargetType;
       let statusMessage: string;
@@ -376,8 +435,23 @@ export class AdminEmployerApprovalService {
 
       await queryRunner.commitTransaction();
 
-      // TODO: Send rejection email to employer
-      // await this.mailService.sendEmployerRejectionEmail(user.email, dto.reason);
+      // Send rejection email notification
+      const isNewProfile =
+        approvalTarget === ApprovalTargetType.EMPLOYER_PROFILE;
+      try {
+        await this.employerEmailService.sendEmployerRejectionEmail(
+          user.email,
+          employer.companyName,
+          dto.reason,
+          isNewProfile,
+        );
+        this.logger.log(`Rejection email sent to ${user.email}`);
+      } catch (emailError) {
+        this.logger.error(
+          `Failed to send rejection email: ${(emailError as Error).message}`,
+        );
+        // Don't fail the whole operation if email fails
+      }
 
       return {
         message: statusMessage,

@@ -35,6 +35,26 @@ export class EmployerUserDto {
 }
 
 /**
+ * Location information
+ */
+export class EmployerLocationDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  province: string;
+
+  @Expose()
+  district: string;
+
+  @Expose()
+  detailedAddress: string | null;
+
+  @Expose()
+  isHeadquarters: boolean;
+}
+
+/**
  * Pending edit field comparison
  */
 export class PendingEditFieldDto {
@@ -105,6 +125,13 @@ export class EmployerProfileDto {
 
   @Expose()
   benefits: string[] | null;
+
+  @Expose()
+  technologies: string[] | null;
+
+  @Expose()
+  @Type(() => EmployerLocationDto)
+  locations: EmployerLocationDto[] | null;
 
   @Expose()
   status: EmployerStatus;

@@ -11,6 +11,7 @@ import {
 import { AdminEmployerApprovalController } from './admin-employer-approval.controller';
 import { AdminEmployerApprovalService } from './admin-employer-approval.service';
 import { AuthModule } from '../auth/auth.module';
+import { EmployerEmailService } from '../auth/services/employer-email.service';
 
 /**
  * Admin Employer Approval Module
@@ -33,7 +34,7 @@ import { AuthModule } from '../auth/auth.module';
     AuthModule,
   ],
   controllers: [AdminEmployerApprovalController],
-  providers: [AdminEmployerApprovalService],
+  providers: [AdminEmployerApprovalService, EmployerEmailService],
   exports: [AdminEmployerApprovalService],
 })
 export class AdminEmployerApprovalModule {}

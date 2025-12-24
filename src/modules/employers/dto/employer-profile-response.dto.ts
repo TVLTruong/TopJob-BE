@@ -136,6 +136,14 @@ export class EmployerProfileResponseDto {
   @Expose()
   benefits: string[];
 
+  // Technologies
+  @ApiPropertyOptional({
+    description: 'Danh sách công nghệ sử dụng',
+    type: [String],
+  })
+  @Expose()
+  technologies: string[];
+
   // Locations
   @ApiPropertyOptional({
     description: 'Danh sách địa điểm',

@@ -130,6 +130,13 @@ export class Employer {
   })
   benefits: string[];
 
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+  })
+  technologies: string[];
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 
