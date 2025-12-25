@@ -183,6 +183,8 @@ export class CandidateProfileService {
       experienceYears: candidate.experienceYears,
       experienceLevel: candidate.experienceLevel,
       educationLevel: candidate.educationLevel,
+      education: candidate.education,
+      workExperience: candidate.workExperience,
       cvs: candidate.cvs?.map((cv) => ({
         id: cv.id,
         fileName: cv.fileName,
