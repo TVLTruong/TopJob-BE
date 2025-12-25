@@ -113,6 +113,57 @@ export class CandidateProfileResponseDto {
   @Expose()
   educationLevel: EducationLevel | null;
 
+  // Education & Work Experience Details
+  @ApiPropertyOptional({
+    description: 'Chi tiết học vấn',
+    type: 'array',
+    example: [
+      {
+        school: 'Đại học ABC',
+        degree: 'Cử nhân',
+        major: 'Khoa học máy tính',
+        startDate: '2018-09',
+        endDate: '2022-06',
+        currentlyStudying: false,
+        additionalDetails: 'GPA: 3.8',
+      },
+    ],
+  })
+  @Expose()
+  education: Array<{
+    school: string;
+    degree: string;
+    major: string;
+    startDate: string;
+    endDate?: string;
+    currentlyStudying: boolean;
+    additionalDetails?: string;
+  }> | null;
+
+  @ApiPropertyOptional({
+    description: 'Chi tiết kinh nghiệm làm việc',
+    type: 'array',
+    example: [
+      {
+        jobTitle: 'Software Engineer',
+        company: 'Tech Company XYZ',
+        startDate: '2022-07',
+        endDate: '2024-01',
+        currentlyWorking: false,
+        description: 'Developed web applications',
+      },
+    ],
+  })
+  @Expose()
+  workExperience: Array<{
+    jobTitle: string;
+    company: string;
+    startDate: string;
+    endDate?: string;
+    currentlyWorking: boolean;
+    description?: string;
+  }> | null;
+
   // CVs
   @ApiPropertyOptional({
     description: 'Danh sách CV',

@@ -10,10 +10,79 @@ import {
   Max,
   MaxLength,
   IsUrl,
+  IsArray,
+  ValidateNested,
+  IsBoolean,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { Gender, EducationLevel, ExperienceLevel } from '../../../common/enums';
+
+/**
+ * Education DTO for candidate profile
+ */
+export class CandidateEducationDto {
+  @ApiPropertyOptional({ description: 'Tên trường' })
+  @IsString()
+  school: string;
+
+  @ApiPropertyOptional({ description: 'Bằng cấp' })
+  @IsString()
+  degree: string;
+
+  @ApiPropertyOptional({ description: 'Chuyên ngành' })
+  @IsString()
+  major: string;
+
+  @ApiPropertyOptional({ description: 'Ngày bắt đầu (YYYY-MM)' })
+  @IsString()
+  startDate: string;
+
+  @ApiPropertyOptional({ description: 'Ngày kết thúc (YYYY-MM)' })
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @ApiPropertyOptional({ description: 'Đang học' })
+  @IsBoolean()
+  currentlyStudying: boolean;
+
+  @ApiPropertyOptional({ description: 'Thông tin bổ sung' })
+  @IsOptional()
+  @IsString()
+  additionalDetails?: string;
+}
+
+/**
+ * Work Experience DTO for candidate profile
+ */
+export class CandidateWorkExperienceDto {
+  @ApiPropertyOptional({ description: 'Chức vụ' })
+  @IsString()
+  jobTitle: string;
+
+  @ApiPropertyOptional({ description: 'Tên công ty' })
+  @IsString()
+  company: string;
+
+  @ApiPropertyOptional({ description: 'Ngày bắt đầu (YYYY-MM)' })
+  @IsString()
+  startDate: string;
+
+  @ApiPropertyOptional({ description: 'Ngày kết thúc (YYYY-MM)' })
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @ApiPropertyOptional({ description: 'Đang làm việc' })
+  @IsBoolean()
+  currentlyWorking: boolean;
+
+  @ApiPropertyOptional({ description: 'Mô tả công việc' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
 
 /**
  * DTO for updating candidate profile (Next Step after registration)
@@ -148,4 +217,25 @@ export class UpdateCandidateProfileDto {
   @IsOptional()
   @IsEnum(EducationLevel, { message: 'Trình độ học vấn không hợp lệ' })
   educationLevel?: EducationLevel;
+
+  // Education & Work Experience Details
+  @ApiPropertyOptional({
+    description: 'Chi tiết học vấn',
+    type: [CandidateEducationDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CandidateEducationDto)
+  education?: CandidateEducationDto[];
+
+  @ApiPropertyOptional({
+    description: 'Chi tiết kinh nghiệm làm việc',
+    type: [CandidateWorkExperienceDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CandidateWorkExperienceDto)
+  workExperience?: CandidateWorkExperienceDto[];
 }

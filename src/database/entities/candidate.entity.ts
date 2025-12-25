@@ -134,6 +134,37 @@ export class Candidate {
   })
   educationLevel: EducationLevel | null;
 
+  // Education & Work Experience Details (stored as JSON)
+  @Column({
+    type: 'jsonb',
+    nullable: true,
+    default: [],
+  })
+  education: Array<{
+    school: string;
+    degree: string;
+    major: string;
+    startDate: string;
+    endDate?: string;
+    currentlyStudying: boolean;
+    additionalDetails?: string;
+  }> | null;
+
+  @Column({
+    type: 'jsonb',
+    nullable: true,
+    default: [],
+    name: 'work_experience',
+  })
+  workExperience: Array<{
+    jobTitle: string;
+    company: string;
+    startDate: string;
+    endDate?: string;
+    currentlyWorking: boolean;
+    description?: string;
+  }> | null;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 

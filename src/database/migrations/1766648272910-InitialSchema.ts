@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1763517094904 implements MigrationInterface {
-  name = 'InitialSchema1763517094904';
+export class InitialSchema1766648272910 implements MigrationInterface {
+  name = 'InitialSchema1766648272910';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -41,13 +41,7 @@ export class InitialSchema1763517094904 implements MigrationInterface {
       `CREATE TYPE "public"."employers_profile_status_enum" AS ENUM('approved', 'pending_edit_approval')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "employers" ("id" BIGSERIAL NOT NULL, "user_id" bigint NOT NULL, "full_name" character varying(255) NOT NULL, "work_title" character varying(255), "company_name" character varying(255) NOT NULL, "description" text, "website" text, "logo_url" text, "cover_image_url" text, "founded_year" integer, "company_size" "public"."employers_company_size_enum", "contact_email" character varying(255), "contact_phone" character varying(20), "linkedlnUrl" text, "facebookUrl" text, "xUrl" text, "is_approved" boolean NOT NULL DEFAULT false, "status" "public"."employers_status_enum" NOT NULL DEFAULT 'pending_approval', "profile_status" "public"."employers_profile_status_enum" NOT NULL DEFAULT 'approved', "benefits" text array, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_b5db2de89197ada09695cbaf900" UNIQUE ("user_id"), CONSTRAINT "REL_b5db2de89197ada09695cbaf90" UNIQUE ("user_id"), CONSTRAINT "PK_f2c1aea3e8d7aa3c5fba949c97d" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_47fa913f7694cc39c84857ec64" ON "employers" ("company_name") `,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_368eb013319db2a84dce696163" ON "employers" ("status") `,
+      `CREATE TABLE "employers" ("id" BIGSERIAL NOT NULL, "user_id" bigint NOT NULL, "full_name" character varying(255) NOT NULL, "work_title" character varying(255), "company_name" character varying(255) NOT NULL, "description" text, "website" text, "logo_url" text, "cover_image_url" text, "founded_year" integer, "company_size" "public"."employers_company_size_enum", "contact_email" character varying(255), "contact_phone" character varying(20), "linkedlnUrl" text, "facebookUrl" text, "xUrl" text, "is_approved" boolean NOT NULL DEFAULT false, "status" "public"."employers_status_enum" NOT NULL DEFAULT 'pending_approval', "profile_status" "public"."employers_profile_status_enum" NOT NULL DEFAULT 'approved', "benefits" text array, "technologies" text array, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_b5db2de89197ada09695cbaf900" UNIQUE ("user_id"), CONSTRAINT "REL_b5db2de89197ada09695cbaf90" UNIQUE ("user_id"), CONSTRAINT "PK_f2c1aea3e8d7aa3c5fba949c97d" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_47fa913f7694cc39c84857ec64" ON "employers" ("company_name") `,
@@ -60,9 +54,6 @@ export class InitialSchema1763517094904 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE TABLE "jobs_categories" ("id" BIGSERIAL NOT NULL, "parent_id" bigint, "name" character varying(255) NOT NULL, "slug" character varying(255) NOT NULL, "is_active" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "parentId" bigint, CONSTRAINT "UQ_28af4d9062d34e18ff2b05671eb" UNIQUE ("slug"), CONSTRAINT "PK_60c2f7df46ba466e86c01778c30" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_28af4d9062d34e18ff2b05671e" ON "jobs_categories" ("slug") `,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_28af4d9062d34e18ff2b05671e" ON "jobs_categories" ("slug") `,
@@ -134,7 +125,7 @@ export class InitialSchema1763517094904 implements MigrationInterface {
       `CREATE TYPE "public"."candidates_education_level_enum" AS ENUM('high_school', 'associate_degree', 'bachelor_degree', 'master_degree', 'doctoral_degree', 'other')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "candidates" ("id" BIGSERIAL NOT NULL, "user_id" bigint NOT NULL, "full_name" character varying(255) NOT NULL, "gender" "public"."candidates_gender_enum", "date_of_birth" date, "phone_number" character varying(20), "avatar_url" text, "bio" text, "personal_url" text, "address_street" character varying(255), "address_district" character varying(100), "address_city" character varying(100), "address_country" character varying(100) NOT NULL DEFAULT 'Vietnam', "experience_years" integer NOT NULL DEFAULT '0', "experience_level" "public"."candidates_experience_level_enum", "education_level" "public"."candidates_education_level_enum", "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_94a5fe85e7f5bd0221fa7d6f19c" UNIQUE ("user_id"), CONSTRAINT "REL_94a5fe85e7f5bd0221fa7d6f19" UNIQUE ("user_id"), CONSTRAINT "PK_140681296bf033ab1eb95288abb" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "candidates" ("id" BIGSERIAL NOT NULL, "user_id" bigint NOT NULL, "full_name" character varying(255) NOT NULL, "gender" "public"."candidates_gender_enum", "date_of_birth" date, "phone_number" character varying(20), "avatar_url" text, "bio" text, "personal_url" text, "address_street" character varying(255), "address_district" character varying(100), "address_city" character varying(100), "address_country" character varying(100) NOT NULL DEFAULT 'Vietnam', "experience_years" integer NOT NULL DEFAULT '0', "experience_level" "public"."candidates_experience_level_enum", "education_level" "public"."candidates_education_level_enum", "education" jsonb DEFAULT '[]', "work_experience" jsonb DEFAULT '[]', "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_94a5fe85e7f5bd0221fa7d6f19c" UNIQUE ("user_id"), CONSTRAINT "REL_94a5fe85e7f5bd0221fa7d6f19" UNIQUE ("user_id"), CONSTRAINT "PK_140681296bf033ab1eb95288abb" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_94a5fe85e7f5bd0221fa7d6f19" ON "candidates" ("user_id") `,
@@ -179,9 +170,6 @@ export class InitialSchema1763517094904 implements MigrationInterface {
       `CREATE TABLE "users" ("id" BIGSERIAL NOT NULL, "email" character varying(255) NOT NULL, "password_hash" character varying(255) NOT NULL, "role" "public"."users_role_enum" NOT NULL, "status" "public"."users_status_enum" NOT NULL DEFAULT 'pending_email_verification', "is_verified" boolean NOT NULL DEFAULT false, "email_verified_at" TIMESTAMP, "last_login_at" TIMESTAMP, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_97672ac88f789774dd47f7c8be3" UNIQUE ("email"), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_97672ac88f789774dd47f7c8be" ON "users" ("email") `,
-    );
-    await queryRunner.query(
       `CREATE INDEX "IDX_d6ee2d4bf901675877bb94977c" ON "users" ("role", "status") `,
     );
     await queryRunner.query(
@@ -189,9 +177,6 @@ export class InitialSchema1763517094904 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE TABLE "companies_categories" ("id" BIGSERIAL NOT NULL, "name" character varying(255) NOT NULL, "slug" character varying(255) NOT NULL, "description" text, "is_active" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_5b14f69842969e40fcae9bab876" UNIQUE ("slug"), CONSTRAINT "PK_ec61bb3e0ea76439cbeab741c91" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_5b14f69842969e40fcae9bab87" ON "companies_categories" ("slug") `,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_5b14f69842969e40fcae9bab87" ON "companies_categories" ("slug") `,
@@ -326,18 +311,12 @@ export class InitialSchema1763517094904 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_5b14f69842969e40fcae9bab87"`,
     );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_5b14f69842969e40fcae9bab87"`,
-    );
     await queryRunner.query(`DROP TABLE "companies_categories"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_97672ac88f789774dd47f7c8be"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_d6ee2d4bf901675877bb94977c"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_97672ac88f789774dd47f7c8be"`,
     );
     await queryRunner.query(`DROP TABLE "users"`);
     await queryRunner.query(`DROP TYPE "public"."users_status_enum"`);
@@ -423,18 +402,9 @@ export class InitialSchema1763517094904 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_28af4d9062d34e18ff2b05671e"`,
     );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_28af4d9062d34e18ff2b05671e"`,
-    );
     await queryRunner.query(`DROP TABLE "jobs_categories"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_b5db2de89197ada09695cbaf90"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_368eb013319db2a84dce696163"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_47fa913f7694cc39c84857ec64"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_368eb013319db2a84dce696163"`,
