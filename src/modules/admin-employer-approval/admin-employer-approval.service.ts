@@ -149,7 +149,7 @@ export class AdminEmployerApprovalService {
       employer: plainToInstance(EmployerProfileDto, employer, {
         excludeExtraneousValues: true,
       }),
-      pendingEdits: pendingEditsDto?.length ? pendingEditsDto : null,
+      pendingEdits: pendingEditsDto?.length ? pendingEditsDto : [],
       hasPendingEdits: employer.hasPendingEdits(),
     };
 
@@ -221,6 +221,7 @@ export class AdminEmployerApprovalService {
         // Approve new profile
         employer.status = EmployerStatus.ACTIVE;
         employer.isApproved = true;
+        employer.profileStatus = EmployerProfileStatus.APPROVED;
         user.status = UserStatus.ACTIVE;
 
         approvalTarget = ApprovalTargetType.EMPLOYER_PROFILE;

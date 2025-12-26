@@ -467,6 +467,7 @@ export class EmployersService {
     }
 
     const user = employer.user;
+
     if (!user || user.status !== UserStatus.PENDING_PROFILE_COMPLETION) {
       throw new BadRequestException(
         'Chỉ được phép gửi hồ sơ khi trạng thái là chờ hoàn thiện hồ sơ',

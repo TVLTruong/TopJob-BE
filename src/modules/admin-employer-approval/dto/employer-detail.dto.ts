@@ -163,7 +163,7 @@ export class EmployerDetailDto {
 
   @Expose()
   @Type(() => PendingEditFieldDto)
-  pendingEdits: PendingEditFieldDto[] | null;
+  pendingEdits: PendingEditFieldDto[] | [];
 
   @Expose()
   hasPendingEdits: boolean;

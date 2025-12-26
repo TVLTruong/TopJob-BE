@@ -26,6 +26,7 @@ import {
   UpdateEmployerProfileDto,
 } from './dto';
 import { LogoutUseCase } from '../auth/usecases';
+import type { AuthenticatedUser } from '../../common/types/express';
 
 /**
  * Employer Profile Controller
@@ -94,14 +95,13 @@ export class EmployerProfileController {
     description: 'Không tìm thấy hồ sơ nhà tuyển dụng',
   })
   async submitEmployerProfile(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateEmployerProfileDto,
   ): Promise<SubmitEmployerProfileResponseDto> {
-    const profile = await this.employersService.submitProfile(user.sub, dto);
+    const profile = await this.employersService.submitProfile(user.id, dto);
 
     // Server-side logout hook (stateless JWT: client must drop token)
-    const logoutResult = await this.logoutUseCase.execute(user.sub);
-
+    const logoutResult = await this.logoutUseCase.execute(user.id);
     return {
       profile,
       message: logoutResult.message,

@@ -46,27 +46,36 @@ import { AuthenticatedUser } from '../types/express';
  * @param data - Optional property key to extract specific field from AuthenticatedUser
  * @returns The entire AuthenticatedUser or specific property value
  */
+// export const CurrentUser = createParamDecorator(
+//   (
+//     data: keyof AuthenticatedUser | undefined,
+//     ctx: ExecutionContext,
+//   ):
+//     | AuthenticatedUser
+//     | AuthenticatedUser[keyof AuthenticatedUser]
+//     | undefined => {
+//     const request = ctx.switchToHttp().getRequest<Request>();
+//     const user = request.user;
+
+//     if (!user) {
+//       return undefined;
+//     }
+
+//     // Return specific property if requested
+//     if (data) {
+//       return user[data];
+//     }
+
+//     // Return entire user object
+//     return user;
+//   },
+
 export const CurrentUser = createParamDecorator(
-  (
-    data: keyof AuthenticatedUser | undefined,
-    ctx: ExecutionContext,
-  ):
-    | AuthenticatedUser
-    | AuthenticatedUser[keyof AuthenticatedUser]
-    | undefined => {
+  (data: keyof AuthenticatedUser | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
-    const user = request.user;
+    const user: AuthenticatedUser = request.user as AuthenticatedUser;
 
-    if (!user) {
-      return undefined;
-    }
-
-    // Return specific property if requested
-    if (data) {
-      return user[data];
-    }
-
-    // Return entire user object
-    return user;
+    if (!user) return undefined;
+    return data ? user[data] : user;
   },
 );
