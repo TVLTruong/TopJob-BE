@@ -14,6 +14,8 @@ import {
   DeleteCvResponseDto,
 } from '../dto';
 import { StorageService } from '../../storage/storage.service';
+import { Readable } from 'stream';
+import axios from 'axios';
 
 /**
  * Candidate CV Service
@@ -175,6 +177,46 @@ export class CandidateCvService {
       where: { candidateId: candidate.id },
       order: { isDefault: 'DESC', uploadedAt: 'DESC' },
     });
+  }
+
+  /**
+   * Download CV
+   * Returns stream and filename for force download
+   */
+  async downloadCv(
+    userId: string,
+    cvId: string,
+  ): Promise<{ stream: Readable; fileName: string }> {
+    const candidate = await this.candidateRepository.findOne({
+      where: { userId },
+    });
+
+    if (!candidate) {
+      throw new NotFoundException('Không tìm thấy hồ sơ ứng viên');
+    }
+
+    const cv = await this.cvRepository.findOne({
+      where: { id: cvId, candidateId: candidate.id },
+    });
+
+    if (!cv) {
+      throw new NotFoundException('Không tìm thấy CV');
+    }
+
+    try {
+      // Download file from URL (R2 or Cloudinary)
+      const response = await axios.get<Readable>(cv.fileUrl, {
+        responseType: 'stream',
+        timeout: 30000,
+      });
+
+      return {
+        stream: response.data,
+        fileName: cv.fileName,
+      };
+    } catch {
+      throw new BadRequestException('Không thể tải xuống CV');
+    }
   }
 
   /**

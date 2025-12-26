@@ -15,7 +15,9 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseFilePipe,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
@@ -294,6 +296,49 @@ export class CandidatesController {
     @Param('cvId') cvId: string,
   ): Promise<DeleteCvResponseDto> {
     return this.candidatesService.deleteCvWithMessage(user.id, cvId);
+  }
+
+  /**
+   * Download CV
+   * GET /candidates/me/cvs/:cvId/download
+   */
+  @Get('me/cvs/:cvId/download')
+  @Roles(UserRole.CANDIDATE)
+  @ApiOperation({
+    summary: 'Tải xuống CV',
+    description:
+      'Tải xuống file CV (force download, không preview trong browser)',
+  })
+  @ApiParam({
+    name: 'cvId',
+    description: 'ID của CV cần tải',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Tải CV thành công',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy CV',
+  })
+  async downloadCv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('cvId') cvId: string,
+    @Res() res: Response,
+  ) {
+    const { stream, fileName } = await this.candidatesService.downloadCv(
+      user.id,
+      cvId,
+    );
+
+    // Set headers để force download
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+      'Cache-Control': 'no-cache',
+    });
+
+    stream.pipe(res);
   }
 
   /**

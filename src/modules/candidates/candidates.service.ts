@@ -1,6 +1,7 @@
 // src/modules/candidates/candidates.service.ts
 
 import { Injectable } from '@nestjs/common';
+import { Readable } from 'stream';
 import {
   UpdateCandidateProfileDto,
   CandidateProfileResponseDto,
@@ -107,6 +108,13 @@ export class CandidatesService {
 
   async getCvs(userId: string): Promise<CandidateCv[]> {
     return this.cvService.getCvs(userId);
+  }
+
+  async downloadCv(
+    userId: string,
+    cvId: string,
+  ): Promise<{ stream: Readable; fileName: string }> {
+    return await this.cvService.downloadCv(userId, cvId);
   }
 
   // ==========================================
