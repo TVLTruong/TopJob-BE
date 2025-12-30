@@ -98,6 +98,12 @@ export class CandidateProfileService {
       experienceYears: dto.experienceYears ?? candidate.experienceYears,
       experienceLevel: dto.experienceLevel ?? candidate.experienceLevel,
       educationLevel: dto.educationLevel ?? candidate.educationLevel,
+      education:
+        dto.education !== undefined ? dto.education : candidate.education,
+      workExperience:
+        dto.workExperience !== undefined
+          ? dto.workExperience
+          : candidate.workExperience,
     });
 
     // Update user status if profile is complete enough
