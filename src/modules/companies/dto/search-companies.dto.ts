@@ -1,8 +1,8 @@
 // src/modules/companies/dto/search-companies.dto.ts
-import { IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { CompanySize } from '../../../common/enums';
+// import { CompanySize } from '../../../common/enums';
 
 /**
  * DTO for Public Company Search (Guest/Candidate)
@@ -45,16 +45,16 @@ export class SearchCompaniesDto extends PaginationDto {
   @IsString()
   industry?: string;
 
-  /**
-   * Lọc theo quy mô công ty
-   * @example "medium"
-   */
-  @ApiPropertyOptional({
-    description: 'Lọc theo quy mô công ty',
-    enum: CompanySize,
-    example: CompanySize.MEDIUM,
-  })
-  @IsOptional()
-  @IsEnum(CompanySize)
-  companySize?: CompanySize;
+  // /**
+  //  * Lọc theo quy mô công ty
+  //  * @example "medium"
+  //  */
+  // @ApiPropertyOptional({
+  //   description: 'Lọc theo quy mô công ty',
+  //   enum: CompanySize,
+  //   example: CompanySize.MEDIUM,
+  // })
+  // @IsOptional()
+  // @IsEnum(CompanySize)
+  // companySize?: CompanySize;
 }

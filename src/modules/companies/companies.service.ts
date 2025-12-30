@@ -63,11 +63,11 @@ export class CompaniesService {
     }
 
     // 5. Filter theo company size
-    if (dto.companySize) {
-      queryBuilder.andWhere('employer.companySize = :companySize', {
-        companySize: dto.companySize,
-      });
-    }
+    // if (dto.companySize) {
+    //   queryBuilder.andWhere('employer.companySize = :companySize', {
+    //     companySize: dto.companySize,
+    //   });
+    // }
 
     // 6. Filter theo industry (nếu có field trong DB)
     // Note: Hiện tại employer entity không có industry field
