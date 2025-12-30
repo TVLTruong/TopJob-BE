@@ -14,7 +14,7 @@ import {
 import {
   EmployerStatus,
   EmployerProfileStatus,
-  CompanySize,
+  // CompanySize,
 } from '../../common/enums';
 import { User } from './user.entity';
 import { EmployerLocation } from './employer-location.entity';
@@ -41,8 +41,8 @@ export class Employer {
   @Column({ type: 'varchar', length: 255, name: 'full_name' })
   fullName: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'work_title', nullable: true })
-  workTitle: string | null;
+  @Column({ type: 'varchar', length: 255, name: 'work_title' })
+  workTitle: string;
 
   // Company Info
   @Column({ type: 'varchar', length: 255, name: 'company_name' })
@@ -62,20 +62,20 @@ export class Employer {
   @Column({ type: 'text', nullable: true, name: 'logo_url' })
   logoUrl: string | null;
 
-  @Column({ type: 'text', nullable: true, name: 'cover_image_url' })
-  coverImageUrl: string | null;
+  // @Column({ type: 'text', nullable: true, name: 'cover_image_url' })
+  // coverImageUrl: string | null;
 
   // Company Details
-  @Column({ type: 'int', nullable: true, name: 'founded_year' })
-  foundedYear: number | null;
+  @Column({ type: 'timestamp', nullable: true, name: 'founded_date' })
+  foundedDate: Date | null;
 
-  @Column({
-    type: 'enum',
-    enum: CompanySize,
-    nullable: true,
-    name: 'company_size',
-  })
-  companySize: CompanySize | null;
+  // @Column({
+  //   type: 'enum',
+  //   enum: CompanySize,
+  //   nullable: true,
+  //   name: 'company_size',
+  // })
+  // companySize: CompanySize | null;
 
   // Contact Info
   @Column({
@@ -137,6 +137,14 @@ export class Employer {
   })
   technologies: string[];
 
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+    name: 'employer_category',
+  })
+  employerCategory: string[];
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 
@@ -177,16 +185,29 @@ export class Employer {
   }
 
   getCompanyAge(): number | null {
-    if (!this.foundedYear) return null;
-    return new Date().getFullYear() - this.foundedYear;
+    if (!this.foundedDate) return null;
+
+    const currentYear = new Date().getFullYear();
+    const foundedYear = this.foundedDate.getFullYear();
+
+    return currentYear - foundedYear;
   }
 
   hasCompleteProfile(): boolean {
     return !!(
       this.companyName &&
       this.description &&
+      this.foundedDate &&
+      this.employerCategory &&
+      this.benefits &&
+      this.technologies &&
+      (this.xUrl ||
+        this.facebookUrl ||
+        this.linkedlnUrl ||
+        this.contactEmail) &&
       this.logoUrl &&
-      this.locations?.length > 0
+      this.locations &&
+      this.locations.length > 0
     );
   }
 }

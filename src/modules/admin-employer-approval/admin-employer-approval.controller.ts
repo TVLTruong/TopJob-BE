@@ -50,22 +50,13 @@ export class AdminEmployerApprovalController {
    */
   @Get()
   @ApiOperation({
-    summary: 'Lấy danh sách NTD chờ duyệt',
+    summary: 'Lấy danh sách nhà tuyển dụng chờ duyệt',
     description:
-      'Lấy danh sách các nhà tuyển dụng có trạng thái PENDING_APPROVAL hoặc PENDING_EDIT_APPROVAL',
+      'Hỗ trợ 3 chế độ: duyệt mới (NEW), duyệt chỉnh sửa (EDIT), hoặc tất cả (ALL)',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy danh sách thành công',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Chưa đăng nhập',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Không có quyền truy cập (chỉ ADMIN)',
-  })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
+  @ApiResponse({ status: 401, description: 'Chưa đăng nhập' })
+  @ApiResponse({ status: 403, description: 'Không có quyền ADMIN' })
   async getEmployerList(@Query() queryDto: QueryEmployerDto) {
     return this.approvalService.getEmployerList(queryDto);
   }

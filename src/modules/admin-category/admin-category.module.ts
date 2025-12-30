@@ -2,7 +2,7 @@
 
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JobCategory, CompanyCategory } from '../../database/entities';
+import { JobCategory, EmployerCategory } from '../../database/entities';
 import { AdminCategoryController } from './admin-category.controller';
 import { AdminCategoryService } from './admin-category.service';
 import { AuthModule } from '../auth/auth.module';
@@ -12,14 +12,14 @@ import { AuthModule } from '../auth/auth.module';
  * Domain-driven module for managing shared categories
  *
  * Features:
- * - Manage JobCategory and CompanyCategory
+ * - Manage JobCategory and EmployerCategory
  * - CRUD operations with soft delete (isActive flag)
  * - Hide/Unhide categories
  * - Frontend dropdown auto-updates based on isActive
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([JobCategory, CompanyCategory]),
+    TypeOrmModule.forFeature([JobCategory, EmployerCategory]),
     AuthModule,
   ],
   controllers: [AdminCategoryController],

@@ -172,7 +172,7 @@ PENDING_PROFILE_COMPLETION → [Hoàn thiện hồ sơ]
   "website": "https://company.com",
   "logoUrl": "https://cloudinary.com/logo.png",
   "coverImageUrl": "https://cloudinary.com/cover.jpg",
-  "foundedYear": 2010,
+  "foundedDate": 2010,
   "companySize": "medium",
   "contactEmail": "hr@company.com",
   "contactPhone": "028-1234-5678",
@@ -260,7 +260,7 @@ Step 4: Hoàn tất
 
 ```
 Step 1: Thông tin công ty
-  → PUT /api/employers/me (companyName, description, website, foundedYear...)
+  → PUT /api/employers/me (companyName, description, website, foundedDate...)
 
 Step 2: Upload Logo/Cover
   → Upload files lên Cloudinary

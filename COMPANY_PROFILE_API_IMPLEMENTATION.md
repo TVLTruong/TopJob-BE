@@ -54,7 +54,7 @@
   website: string | null;
   logoUrl: string | null;
   coverImageUrl: string | null;
-  foundedYear: number | null;
+  foundedDate: number | null;
   companySize: CompanySize | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -104,7 +104,7 @@ GET /api/companies/1
   "website": "https://techinnovation.com",
   "logoUrl": "https://storage.example.com/logos/tech-innovation.png",
   "coverImageUrl": "https://storage.example.com/covers/tech-innovation-cover.jpg",
-  "foundedYear": 2015,
+  "foundedDate": 2015,
   "companySize": "medium",
   "contactEmail": "hr@techinnovation.com",
   "contactPhone": "0901234567",
@@ -492,8 +492,8 @@ function CompanyProfile({ companyId }: { companyId: string }) {
        },
      }),
      totalLocations: employer.locations.length,
-     companyAge: employer.foundedYear
-       ? new Date().getFullYear() - employer.foundedYear
+     companyAge: employer.foundedDate
+       ? new Date().getFullYear() - employer.foundedDate
        : null,
    };
    ```

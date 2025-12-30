@@ -5,7 +5,7 @@ import { Expose, Type } from 'class-transformer';
 import {
   EmployerStatus,
   EmployerProfileStatus,
-  CompanySize,
+  // CompanySize,
 } from '../../../common/enums';
 
 /**
@@ -56,7 +56,7 @@ export class EmployerProfileResponseDto {
 
   @ApiPropertyOptional({ description: 'Chức vụ' })
   @Expose()
-  workTitle: string | null;
+  workTitle: string;
 
   @ApiPropertyOptional({ description: 'Email (từ User)' })
   @Expose()
@@ -80,18 +80,18 @@ export class EmployerProfileResponseDto {
   @Expose()
   logoUrl: string | null;
 
-  @ApiPropertyOptional({ description: 'URL ảnh bìa' })
-  @Expose()
-  coverImageUrl: string | null;
+  // @ApiPropertyOptional({ description: 'URL ảnh bìa' })
+  // @Expose()
+  // coverImageUrl: string | null;
 
   // Company Details
   @ApiPropertyOptional({ description: 'Năm thành lập' })
   @Expose()
-  foundedYear: number | null;
+  foundedDate: Date | null;
 
-  @ApiPropertyOptional({ description: 'Quy mô công ty', enum: CompanySize })
-  @Expose()
-  companySize: CompanySize | null;
+  // @ApiPropertyOptional({ description: 'Quy mô công ty', enum: CompanySize })
+  // @Expose()
+  // companySize: CompanySize | null;
 
   // Contact Info
   @ApiPropertyOptional({ description: 'Email liên hệ' })
@@ -130,6 +130,13 @@ export class EmployerProfileResponseDto {
   })
   @Expose()
   profileStatus: EmployerProfileStatus;
+
+  @ApiPropertyOptional({
+    description: 'Danh mục nhà tuyển dụng',
+    type: [String],
+  })
+  @Expose()
+  employerCategory: string[];
 
   // Benefits
   @ApiPropertyOptional({ description: 'Danh sách phúc lợi', type: [String] })

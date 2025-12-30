@@ -148,7 +148,7 @@ GET /api/companies?page=1&limit=10
       "website": "https://techinnovation.com",
       "logoUrl": "https://storage.example.com/logos/tech-innovation.png",
       "coverImageUrl": "https://storage.example.com/covers/tech-innovation-cover.jpg",
-      "foundedYear": 2015,
+      "foundedDate": 2015,
       "companySize": "medium",
       "contactEmail": "hr@techinnovation.com",
       "contactPhone": "0901234567",

@@ -8,7 +8,7 @@ export { EmployerLocation } from './employer-location.entity';
 export { EmployerPendingEdit } from './employer-pending-edit.entity';
 export { Job } from './job.entity';
 export { JobCategory } from './job-category.entity';
-export { CompanyCategory } from './company-category.entity';
+export { EmployerCategory } from './employer-category.entity';
 export { Application } from './application.entity';
 export { SavedJob } from './saved-job.entity';
 export { OtpVerification } from './otp-verification.entity';

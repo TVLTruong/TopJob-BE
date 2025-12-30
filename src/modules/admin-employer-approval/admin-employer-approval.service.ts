@@ -21,6 +21,7 @@ import {
   EmployerProfileStatus,
   ApprovalAction,
   ApprovalTargetType,
+  EmployerApprovalType,
 } from '../../common/enums';
 import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
 import {
@@ -66,42 +67,84 @@ export class AdminEmployerApprovalService {
   async getEmployerList(
     queryDto: QueryEmployerDto,
   ): Promise<PaginationResponseDto<Employer>> {
-    const { page = 1, limit = 10, status, profileStatus } = queryDto;
+    const {
+      page = 1,
+      limit = 10,
+      approvalType = EmployerApprovalType.ALL,
+    } = queryDto;
+
     const skip = (page - 1) * limit;
 
-    const queryBuilder = this.employerRepository
+    const qb = this.employerRepository
       .createQueryBuilder('employer')
       .leftJoinAndSelect('employer.user', 'user')
-      .leftJoinAndSelect('employer.pendingEdits', 'pendingEdits');
+      .leftJoinAndSelect('employer.pendingEdits', 'pendingEdits')
+      .where('employer.status = :pendingStatus', {
+        pendingStatus: EmployerStatus.PENDING_APPROVAL,
+      });
 
-    // Filter: Only employers needing approval
-    if (status) {
-      queryBuilder.andWhere('employer.status = :status', { status });
-    } else {
-      // Default: Show both pending approval statuses
-      queryBuilder.andWhere(
-        '(employer.status = :pendingStatus OR (employer.status = :activeStatus AND employer.profileStatus = :pendingEditStatus))',
+    /**
+     * CASE 1 – New approval
+     */
+    if (approvalType === EmployerApprovalType.NEW) {
+      qb.andWhere(
+        `
+      user.status = :userPending
+      AND employer.profileStatus = :profileNew
+      `,
         {
-          pendingStatus: EmployerStatus.PENDING_APPROVAL,
-          activeStatus: EmployerStatus.ACTIVE,
-          pendingEditStatus: EmployerProfileStatus.PENDING_EDIT_APPROVAL,
+          userPending: UserStatus.PENDING_APPROVAL,
+          profileNew: EmployerProfileStatus.PENDING_NEW_APPROVAL,
         },
       );
     }
 
-    if (profileStatus) {
-      queryBuilder.andWhere('employer.profileStatus = :profileStatus', {
-        profileStatus,
-      });
+    /**
+     * CASE 2 – Edit approval
+     */
+    if (approvalType === EmployerApprovalType.EDIT) {
+      qb.andWhere(
+        `
+      user.status = :userActive
+      AND employer.profileStatus = :profileEdit
+      `,
+        {
+          userActive: UserStatus.ACTIVE,
+          profileEdit: EmployerProfileStatus.PENDING_EDIT_APPROVAL,
+        },
+      );
     }
 
-    // Order by creation date (oldest first - FIFO)
-    queryBuilder.orderBy('employer.createdAt', 'ASC');
+    /**
+     * CASE 3 – ALL
+     */
+    if (approvalType === EmployerApprovalType.ALL) {
+      qb.andWhere(
+        `
+      (
+        (
+          user.status = :userPending
+          AND employer.profileStatus = :profileNew
+        )
+        OR
+        (
+          user.status = :userActive
+          AND employer.profileStatus = :profileEdit
+        )
+      )
+      `,
+        {
+          userPending: UserStatus.PENDING_APPROVAL,
+          userActive: UserStatus.ACTIVE,
+          profileNew: EmployerProfileStatus.PENDING_NEW_APPROVAL,
+          profileEdit: EmployerProfileStatus.PENDING_EDIT_APPROVAL,
+        },
+      );
+    }
 
-    // Pagination
-    queryBuilder.skip(skip).take(limit);
+    qb.orderBy('employer.createdAt', 'ASC').skip(skip).take(limit);
 
-    const [data, total] = await queryBuilder.getManyAndCount();
+    const [data, total] = await qb.getManyAndCount();
 
     return {
       data,

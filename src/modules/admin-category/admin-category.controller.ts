@@ -26,7 +26,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums';
 import { IdParamDto } from '../../common/dto/id-param.dto';
 import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
-import { JobCategory, CompanyCategory } from '../../database/entities';
+import { JobCategory, EmployerCategory } from '../../database/entities';
 import { AdminCategoryService } from './admin-category.service';
 import {
   QueryCategoryDto,
@@ -37,7 +37,7 @@ import {
 
 /**
  * Admin Category Management Controller
- * REST API for managing shared categories (JobCategory, CompanyCategory)
+ * REST API for managing shared categories (JobCategory, EmployerCategory)
  *
  * Protected routes:
  * - JwtAuthGuard: Requires valid JWT token
@@ -59,7 +59,7 @@ export class AdminCategoryController {
   @ApiOperation({
     summary: 'Xem danh sách categories',
     description:
-      'Admin xem tất cả JobCategory hoặc CompanyCategory với bộ lọc. Hỗ trợ tìm kiếm và phân trang.',
+      'Admin xem tất cả JobCategory hoặc EmployerCategory với bộ lọc. Hỗ trợ tìm kiếm và phân trang.',
   })
   @ApiResponse({
     status: 200,
@@ -69,7 +69,7 @@ export class AdminCategoryController {
   @ApiResponse({ status: 403, description: 'Không có quyền truy cập' })
   async getCategoryList(
     @Query() query: QueryCategoryDto,
-  ): Promise<PaginationResponseDto<JobCategory | CompanyCategory>> {
+  ): Promise<PaginationResponseDto<JobCategory | EmployerCategory>> {
     return this.adminCategoryService.getCategoryList(query);
   }
 
@@ -101,7 +101,7 @@ export class AdminCategoryController {
   async getCategoryDetail(
     @Param() params: IdParamDto,
     @Query('type') type: CategoryType,
-  ): Promise<JobCategory | CompanyCategory> {
+  ): Promise<JobCategory | EmployerCategory> {
     return this.adminCategoryService.getCategoryDetail(params.id, type);
   }
 
@@ -112,7 +112,7 @@ export class AdminCategoryController {
   @ApiOperation({
     summary: 'Tạo category mới',
     description:
-      'Tạo JobCategory hoặc CompanyCategory. JobCategory hỗ trợ cấu trúc cây (parentId).',
+      'Tạo JobCategory hoặc EmployerCategory. JobCategory hỗ trợ cấu trúc cây (parentId).',
   })
   @ApiResponse({
     status: 201,
@@ -128,7 +128,7 @@ export class AdminCategoryController {
   })
   async createCategory(
     @Body() dto: CreateCategoryDto,
-  ): Promise<{ message: string; category: JobCategory | CompanyCategory }> {
+  ): Promise<{ message: string; category: JobCategory | EmployerCategory }> {
     const category = await this.adminCategoryService.createCategory(dto);
     return {
       message: 'Tạo category thành công',
@@ -172,7 +172,7 @@ export class AdminCategoryController {
     @Param() params: IdParamDto,
     @Query('type') type: CategoryType,
     @Body() dto: UpdateCategoryDto,
-  ): Promise<{ message: string; category: JobCategory | CompanyCategory }> {
+  ): Promise<{ message: string; category: JobCategory | EmployerCategory }> {
     const category = await this.adminCategoryService.updateCategory(
       params.id,
       type,

@@ -103,7 +103,7 @@ export class EmployerProfileDto {
   coverImageUrl: string | null;
 
   @Expose()
-  foundedYear: number | null;
+  foundedDate: number | null;
 
   @Expose()
   companySize: string | null;

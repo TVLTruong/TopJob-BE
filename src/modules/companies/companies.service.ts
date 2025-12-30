@@ -1,10 +1,10 @@
 // src/modules/companies/companies.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Employer } from '../../database/entities/employer.entity'; // 👈 Nối dây (Bảng 3)
 import { Job } from '../../database/entities/job.entity'; // 👈 Nối dây (Bảng 8)
-import { EmployerStatus, JobStatus } from '../../common/enums'; // 👈 Nối dây (Tool)
+import { EmployerStatus } from '../../common/enums'; // 👈 Nối dây (Tool)
 import { SearchCompaniesDto } from './dto/search-companies.dto';
 import { createPaginationResponse } from '../../common/utils/query-builder.util';
 import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
@@ -21,7 +21,7 @@ export class CompaniesService {
   /**
    * PUBLIC API - Tìm kiếm công ty công khai cho Guest/Candidate
    * UC-GUEST-04: Tìm kiếm công ty
-   * 
+   *
    * Features:
    * - Chỉ trả về employers có status = ACTIVE
    * - Tìm kiếm theo company name
@@ -29,7 +29,7 @@ export class CompaniesService {
    * - Pagination: page, limit
    * - Query tối ưu với QueryBuilder
    * - Response chuẩn REST (items, total, page, limit)
-   * 
+   *
    * @param dto - Search filters và pagination
    * @returns Paginated list of employers
    */
@@ -89,13 +89,13 @@ export class CompaniesService {
   /**
    * PUBLIC API - Xem hồ sơ công ty công khai
    * UC-GUEST-03: Xem hồ sơ công ty
-   * 
+   *
    * Features:
    * - Chỉ cho phép xem employers có status = ACTIVE
    * - Load đầy đủ thông tin công ty và locations
    * - Xử lý rõ ràng các trường hợp: NOT_FOUND, PENDING_APPROVAL, BANNED
    * - Trả về thông tin công ty và danh sách office locations
-   * 
+   *
    * @param id - Employer ID
    * @returns Employer profile với locations
    * @throws NotFoundException - Company không tồn tại hoặc chưa được duyệt
@@ -109,30 +109,22 @@ export class CompaniesService {
 
     // 2. Employer không tồn tại
     if (!employer) {
-      throw new NotFoundException(
-        `Không tìm thấy công ty với ID: ${id}`,
-      );
+      throw new NotFoundException(`Không tìm thấy công ty với ID: ${id}`);
     }
 
     // 3. Kiểm tra status - chỉ cho phép ACTIVE
     if (employer.status !== EmployerStatus.ACTIVE) {
       // Xử lý các trường hợp cụ thể
       if (employer.status === EmployerStatus.PENDING_APPROVAL) {
-        throw new NotFoundException(
-          'Hồ sơ công ty này đang chờ phê duyệt.',
-        );
+        throw new NotFoundException('Hồ sơ công ty này đang chờ phê duyệt.');
       }
 
       if (employer.status === EmployerStatus.BANNED) {
-        throw new NotFoundException(
-          'Hồ sơ công ty này đã bị khóa.',
-        );
+        throw new NotFoundException('Hồ sơ công ty này đã bị khóa.');
       }
 
       // Các status khác
-      throw new NotFoundException(
-        'Hồ sơ công ty này không khả dụng.',
-      );
+      throw new NotFoundException('Hồ sơ công ty này không khả dụng.');
     }
 
     // 4. Trả về thông tin công ty với locations
@@ -142,9 +134,9 @@ export class CompaniesService {
       description: employer.description,
       website: employer.website,
       logoUrl: employer.logoUrl,
-      coverImageUrl: employer.coverImageUrl,
-      foundedYear: employer.foundedYear,
-      companySize: employer.companySize,
+      // coverImageUrl: employer.coverImageUrl,
+      foundedDate: employer.foundedDate,
+      // companySize: employer.companySize,
       contactEmail: employer.contactEmail,
       contactPhone: employer.contactPhone,
       linkedlnUrl: employer.linkedlnUrl,

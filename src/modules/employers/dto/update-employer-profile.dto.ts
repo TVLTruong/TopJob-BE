@@ -3,10 +3,11 @@
 import {
   IsOptional,
   IsString,
-  IsEnum,
-  IsInt,
-  Min,
-  Max,
+  // IsEnum,
+  // IsInt,
+  IsDate,
+  // Min,
+  // Max,
   MaxLength,
   IsUrl,
   IsArray,
@@ -15,7 +16,7 @@ import {
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { CompanySize } from '../../../common/enums';
+// import { CompanySize } from '../../../common/enums';
 
 /**
  * DTO for adding/updating employer location
@@ -123,36 +124,33 @@ export class UpdateEmployerProfileDto {
   @IsString({ message: 'URL logo phải là chuỗi' })
   logoUrl?: string;
 
-  @ApiPropertyOptional({
-    description: 'URL ảnh bìa công ty',
-    example: 'https://cloudinary.com/abc123/cover.jpg',
-  })
-  @IsOptional()
-  @IsString({ message: 'URL ảnh bìa phải là chuỗi' })
-  coverImageUrl?: string;
+  // @ApiPropertyOptional({
+  //   description: 'URL ảnh bìa công ty',
+  //   example: 'https://cloudinary.com/abc123/cover.jpg',
+  // })
+  // @IsOptional()
+  // @IsString({ message: 'URL ảnh bìa phải là chuỗi' })
+  // coverImageUrl?: string;
 
   // Company Details
   @ApiPropertyOptional({
-    description: 'Năm thành lập',
-    example: 2010,
-    minimum: 1800,
-    maximum: 2030,
+    description: 'Ngày thành lập',
+    example: '21/11/2010',
+    format: 'mm/dd/yyyy',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'Năm thành lập phải là số nguyên' })
-  @Min(1800, { message: 'Năm thành lập không hợp lệ' })
-  @Max(2030, { message: 'Năm thành lập không hợp lệ' })
-  foundedYear?: number;
+  @Type(() => Date)
+  @IsDate({ message: 'Ngày thành lập tuân theo format mm/dd/yyyy' })
+  foundedDate?: Date;
 
-  @ApiPropertyOptional({
-    description: 'Quy mô công ty',
-    enum: CompanySize,
-    example: CompanySize.MEDIUM,
-  })
-  @IsOptional()
-  @IsEnum(CompanySize, { message: 'Quy mô công ty không hợp lệ' })
-  companySize?: CompanySize;
+  // @ApiPropertyOptional({
+  //   description: 'Quy mô công ty',
+  //   enum: CompanySize,
+  //   example: CompanySize.MEDIUM,
+  // })
+  // @IsOptional()
+  // @IsEnum(CompanySize, { message: 'Quy mô công ty không hợp lệ' })
+  // companySize?: CompanySize;
 
   // Contact Info
   @ApiPropertyOptional({
@@ -209,13 +207,27 @@ export class UpdateEmployerProfileDto {
   @IsString({ each: true, message: 'Mỗi phúc lợi phải là chuỗi' })
   benefits?: string[];
 
+  // employerCategory
+  @ApiPropertyOptional({
+    description: 'Danh sách danh mục nhà tuyển dụng',
+    example: ['Công nghệ thông tin', 'Tài chính', 'Marketing'],
+    type: [String],
+  })
+  // @IsOptional()
+  @IsArray({ message: 'Danh mục nhà tuyển dụng phải là mảng' })
+  @IsString({
+    each: true,
+    message: 'Mỗi danh mục nhà tuyển dụng phải là chuỗi',
+  })
+  employerCategory?: string[];
+
   // Technologies
   @ApiPropertyOptional({
     description: 'Danh sách công nghệ sử dụng',
     example: ['React', 'Node.js', 'PostgreSQL', 'Docker'],
     type: [String],
   })
-  @IsOptional()
+  // @IsOptional()
   @IsArray({ message: 'Công nghệ phải là mảng' })
   @IsString({ each: true, message: 'Mỗi công nghệ phải là chuỗi' })
   technologies?: string[];
@@ -225,7 +237,7 @@ export class UpdateEmployerProfileDto {
     description: 'Danh sách địa điểm văn phòng',
     type: [EmployerLocationDto],
   })
-  @IsOptional()
+  // @IsOptional()
   @IsArray({ message: 'Locations phải là mảng' })
   @ValidateNested({ each: true })
   @Type(() => EmployerLocationDto)

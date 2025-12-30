@@ -20,3 +20,4 @@ export * from './otp.enum';
 
 // Approval Enums
 export * from './approval.enum';
+export * from './employer-approval-type.enum';

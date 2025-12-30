@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, SelectQueryBuilder } from 'typeorm';
-import { JobCategory, CompanyCategory } from '../../database/entities';
+import { JobCategory, EmployerCategory } from '../../database/entities';
 import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
 import {
   QueryCategoryDto,
@@ -23,7 +23,7 @@ import {
  * Domain-driven service for managing shared categories
  *
  * Features:
- * - Manage JobCategory and CompanyCategory
+ * - Manage JobCategory and EmployerCategory
  * - CRUD operations with soft delete (isActive flag)
  * - Hide/Unhide categories without affecting old data
  * - Frontend dropdown automatically updates based on isActive
@@ -35,18 +35,18 @@ export class AdminCategoryService {
   constructor(
     @InjectRepository(JobCategory)
     private readonly jobCategoryRepository: Repository<JobCategory>,
-    @InjectRepository(CompanyCategory)
-    private readonly companyCategoryRepository: Repository<CompanyCategory>,
+    @InjectRepository(EmployerCategory)
+    private readonly EmployerCategoryRepository: Repository<EmployerCategory>,
     private readonly dataSource: DataSource,
   ) {}
 
   /**
    * Get paginated list of categories with filters
-   * Supports both JobCategory and CompanyCategory
+   * Supports both JobCategory and EmployerCategory
    */
   async getCategoryList(
     query: QueryCategoryDto,
-  ): Promise<PaginationResponseDto<JobCategory | CompanyCategory>> {
+  ): Promise<PaginationResponseDto<JobCategory | EmployerCategory>> {
     const {
       page = 1,
       limit = 10,
@@ -66,7 +66,7 @@ export class AdminCategoryService {
         );
       }
 
-      let queryBuilder: SelectQueryBuilder<JobCategory | CompanyCategory>;
+      let queryBuilder: SelectQueryBuilder<JobCategory | EmployerCategory>;
       let alias: string;
 
       if (type === CategoryType.JOB_CATEGORY) {
@@ -77,7 +77,8 @@ export class AdminCategoryService {
           .leftJoinAndSelect(`${alias}.children`, 'children');
       } else {
         alias = 'category';
-        queryBuilder = this.companyCategoryRepository.createQueryBuilder(alias);
+        queryBuilder =
+          this.EmployerCategoryRepository.createQueryBuilder(alias);
       }
 
       // Search filter
@@ -130,8 +131,8 @@ export class AdminCategoryService {
   async getCategoryDetail(
     id: string,
     type: CategoryType,
-  ): Promise<JobCategory | CompanyCategory> {
-    let category: JobCategory | CompanyCategory | null;
+  ): Promise<JobCategory | EmployerCategory> {
+    let category: JobCategory | EmployerCategory | null;
 
     if (type === CategoryType.JOB_CATEGORY) {
       category = await this.jobCategoryRepository.findOne({
@@ -139,7 +140,7 @@ export class AdminCategoryService {
         relations: ['parent', 'children'],
       });
     } else {
-      category = await this.companyCategoryRepository.findOne({
+      category = await this.EmployerCategoryRepository.findOne({
         where: { id },
       });
     }
@@ -159,7 +160,7 @@ export class AdminCategoryService {
    */
   async createCategory(
     dto: CreateCategoryDto,
-  ): Promise<JobCategory | CompanyCategory> {
+  ): Promise<JobCategory | EmployerCategory> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -200,7 +201,7 @@ export class AdminCategoryService {
         this.logger.log(`Created JobCategory: ${savedCategory.id} - ${name}`);
         return savedCategory;
       } else {
-        const companyCategory = this.companyCategoryRepository.create({
+        const EmployerCategory = this.EmployerCategoryRepository.create({
           name,
           slug,
           description: description || null,
@@ -208,13 +209,13 @@ export class AdminCategoryService {
         });
 
         const savedCategory = await queryRunner.manager.save(
-          CompanyCategory,
-          companyCategory,
+          // EmployerCategory,
+          EmployerCategory,
         );
         await queryRunner.commitTransaction();
 
         this.logger.log(
-          `Created CompanyCategory: ${savedCategory.id} - ${name}`,
+          `Created EmployerCategory: ${savedCategory.id} - ${name}`,
         );
         return savedCategory;
       }
@@ -238,13 +239,13 @@ export class AdminCategoryService {
     id: string,
     type: CategoryType,
     dto: UpdateCategoryDto,
-  ): Promise<JobCategory | CompanyCategory> {
+  ): Promise<JobCategory | EmployerCategory> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      let category: JobCategory | CompanyCategory | null;
+      let category: JobCategory | EmployerCategory | null;
 
       if (type === CategoryType.JOB_CATEGORY) {
         category = await queryRunner.manager.findOne(JobCategory, {
@@ -276,7 +277,7 @@ export class AdminCategoryService {
         this.logger.log(`Updated JobCategory: ${id}`);
         return updated;
       } else {
-        category = await queryRunner.manager.findOne(CompanyCategory, {
+        category = await queryRunner.manager.findOne(EmployerCategory, {
           where: { id },
           lock: { mode: 'pessimistic_write' },
         });
@@ -302,12 +303,12 @@ export class AdminCategoryService {
           category.description = dto.description;
 
         const updated = await queryRunner.manager.save(
-          CompanyCategory,
+          EmployerCategory,
           category,
         );
         await queryRunner.commitTransaction();
 
-        this.logger.log(`Updated CompanyCategory: ${id}`);
+        this.logger.log(`Updated EmployerCategory: ${id}`);
         return updated;
       }
     } catch (error) {
@@ -334,7 +335,7 @@ export class AdminCategoryService {
     await queryRunner.startTransaction();
 
     try {
-      let category: JobCategory | CompanyCategory | null;
+      let category: JobCategory | EmployerCategory | null;
 
       if (type === CategoryType.JOB_CATEGORY) {
         category = await queryRunner.manager.findOne(JobCategory, {
@@ -355,7 +356,7 @@ export class AdminCategoryService {
         category.isActive = false;
         await queryRunner.manager.save(JobCategory, category);
       } else {
-        category = await queryRunner.manager.findOne(CompanyCategory, {
+        category = await queryRunner.manager.findOne(EmployerCategory, {
           where: { id },
           lock: { mode: 'pessimistic_write' },
         });
@@ -371,13 +372,13 @@ export class AdminCategoryService {
         }
 
         category.isActive = false;
-        await queryRunner.manager.save(CompanyCategory, category);
+        await queryRunner.manager.save(EmployerCategory, category);
       }
 
       await queryRunner.commitTransaction();
 
       this.logger.log(
-        `Hidden ${type === CategoryType.JOB_CATEGORY ? 'JobCategory' : 'CompanyCategory'}: ${id} - ${category.name}`,
+        `Hidden ${type === CategoryType.JOB_CATEGORY ? 'JobCategory' : 'EmployerCategory'}: ${id} - ${category.name}`,
       );
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -402,7 +403,7 @@ export class AdminCategoryService {
     await queryRunner.startTransaction();
 
     try {
-      let category: JobCategory | CompanyCategory | null;
+      let category: JobCategory | EmployerCategory | null;
 
       if (type === CategoryType.JOB_CATEGORY) {
         category = await queryRunner.manager.findOne(JobCategory, {
@@ -423,7 +424,7 @@ export class AdminCategoryService {
         category.isActive = true;
         await queryRunner.manager.save(JobCategory, category);
       } else {
-        category = await queryRunner.manager.findOne(CompanyCategory, {
+        category = await queryRunner.manager.findOne(EmployerCategory, {
           where: { id },
           lock: { mode: 'pessimistic_write' },
         });
@@ -439,13 +440,13 @@ export class AdminCategoryService {
         }
 
         category.isActive = true;
-        await queryRunner.manager.save(CompanyCategory, category);
+        await queryRunner.manager.save(EmployerCategory, category);
       }
 
       await queryRunner.commitTransaction();
 
       this.logger.log(
-        `Unhidden ${type === CategoryType.JOB_CATEGORY ? 'JobCategory' : 'CompanyCategory'}: ${id} - ${category.name}`,
+        `Unhidden ${type === CategoryType.JOB_CATEGORY ? 'JobCategory' : 'EmployerCategory'}: ${id} - ${category.name}`,
       );
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -482,13 +483,13 @@ export class AdminCategoryService {
         );
       }
     } else {
-      const existing = await repo.findOne(CompanyCategory, {
+      const existing = await repo.findOne(EmployerCategory, {
         where: { slug },
       });
 
       if (existing && existing.id !== excludeId) {
         throw new ConflictException(
-          `Slug "${slug}" đã tồn tại trong CompanyCategory`,
+          `Slug "${slug}" đã tồn tại trong EmployerCategory`,
         );
       }
     }

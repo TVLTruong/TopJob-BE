@@ -14,9 +14,9 @@ import {
  * Industry/sector categories for companies
  * Use Cases: UCADM06, UCGUEST04
  */
-@Entity('companies_categories')
+@Entity('employer_categories')
 @Index(['slug'])
-export class CompanyCategory {
+export class EmployerCategory {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: string;
 

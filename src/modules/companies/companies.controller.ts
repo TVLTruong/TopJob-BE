@@ -22,7 +22,7 @@ export class CompaniesController {
    * PUBLIC API - Tìm kiếm công ty công khai
    * UC-GUEST-04: Tìm kiếm công ty
    * GET /api/companies
-   * 
+   *
    * Features:
    * - Không yêu cầu authentication (Guest có thể truy cập)
    * - Chỉ trả về employers có status = ACTIVE
@@ -51,16 +51,16 @@ export class CompaniesController {
    * PUBLIC API - Xem hồ sơ công ty
    * UC-GUEST-03: Xem hồ sơ công ty
    * GET /api/companies/:id
-   * 
+   *
    * Features:
    * - Không yêu cầu authentication (Guest có thể truy cập)
    * - Chỉ trả về employers có status = ACTIVE
    * - Load đầy đủ thông tin công ty và danh sách office locations
    * - Xử lý rõ ràng các trường hợp: NOT_FOUND, PENDING_APPROVAL, BANNED
-   * 
+   *
    * @param id - Employer ID
    * @returns Company profile với locations
-   * 
+   *
    * Error Responses:
    * - 404: Company không tồn tại
    * - 404: Company đang chờ phê duyệt
@@ -71,7 +71,8 @@ export class CompaniesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Xem hồ sơ công ty (Public)',
-    description: 'API cho Guest/Candidate xem chi tiết công ty và danh sách office locations. Chỉ trả về employers ACTIVE.',
+    description:
+      'API cho Guest/Candidate xem chi tiết công ty và danh sách office locations. Chỉ trả về employers ACTIVE.',
   })
   @ApiResponse({
     status: 200,
@@ -81,11 +82,17 @@ export class CompaniesController {
       properties: {
         id: { type: 'string', example: '1' },
         companyName: { type: 'string', example: 'Tech Innovation Co., Ltd' },
-        description: { type: 'string', example: 'Leading technology company...' },
+        description: {
+          type: 'string',
+          example: 'Leading technology company...',
+        },
         website: { type: 'string', example: 'https://techinnovation.com' },
         logoUrl: { type: 'string', example: 'https://storage.../logo.png' },
-        coverImageUrl: { type: 'string', example: 'https://storage.../cover.jpg' },
-        foundedYear: { type: 'number', example: 2015 },
+        coverImageUrl: {
+          type: 'string',
+          example: 'https://storage.../cover.jpg',
+        },
+        foundedDate: { type: 'number', example: 2015 },
         companySize: { type: 'string', example: 'medium' },
         contactEmail: { type: 'string', example: 'hr@techinnovation.com' },
         contactPhone: { type: 'string', example: '0901234567' },
@@ -113,8 +120,8 @@ export class CompaniesController {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 404 },
-        message: { 
-          type: 'string', 
+        message: {
+          type: 'string',
           examples: [
             'Không tìm thấy công ty với ID: 123',
             'Hồ sơ công ty này đang chờ phê duyệt.',

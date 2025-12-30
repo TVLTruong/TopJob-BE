@@ -118,7 +118,7 @@ GET /admin/employers/:id
     "website": "https://abc.com",
     "logoUrl": "https://...",
     "coverImageUrl": "https://...",
-    "foundedYear": 2010,
+    "foundedDate": 2010,
     "companySize": "medium",
     "contactEmail": "hr@abc.com",
     "contactPhone": "0123456789",

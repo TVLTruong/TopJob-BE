@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
+import { Repository, DataSource, In, Not } from 'typeorm';
 import {
   Employer,
   EmployerLocation,
@@ -126,9 +126,10 @@ export class EmployersService {
         description: dto.description ?? employer.description,
         website: dto.website ?? employer.website,
         logoUrl: dto.logoUrl ?? employer.logoUrl,
-        coverImageUrl: dto.coverImageUrl ?? employer.coverImageUrl,
-        foundedYear: dto.foundedYear ?? employer.foundedYear,
-        companySize: dto.companySize ?? employer.companySize,
+        employerCategory: dto.employerCategory ?? employer.employerCategory,
+        // coverImageUrl: dto.coverImageUrl ?? employer.coverImageUrl,
+        foundedDate: dto.foundedDate ?? employer.foundedDate,
+        // companySize: dto.companySize ?? employer.companySize,
         contactEmail: dto.contactEmail ?? employer.contactEmail,
         contactPhone: dto.contactPhone ?? employer.contactPhone,
         linkedlnUrl: dto.linkedlnUrl ?? employer.linkedlnUrl,
@@ -205,7 +206,7 @@ export class EmployersService {
         });
 
         if (reloadedEmployer && this.isProfileComplete(reloadedEmployer)) {
-          user.status = UserStatus.PENDING_APPROVAL;
+          user.status = UserStatus.ACTIVE;
           await queryRunner.manager.save(user);
         }
       }
@@ -229,21 +230,22 @@ export class EmployersService {
     userId: string,
     dto: UpdateEmployerProfileDto,
   ): Promise<EmployerProfileResponseDto> {
-    const employer = await this.employerRepository.findOne({
-      where: { userId },
-      relations: ['user', 'locations'],
-    });
-
-    if (!employer) {
-      throw new NotFoundException('Không tìm thấy hồ sơ nhà tuyển dụng');
-    }
-
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // Update non-sensitive fields
+      const manager = queryRunner.manager;
+
+      const employer = await manager.findOne(Employer, {
+        where: { userId },
+        relations: ['user', 'locations'],
+      });
+
+      if (!employer) {
+        throw new NotFoundException('Không tìm thấy hồ sơ nhà tuyển dụng');
+      }
+
       Object.assign(employer, {
         fullName: dto.fullName ?? employer.fullName,
         workTitle: dto.workTitle ?? employer.workTitle,
@@ -251,9 +253,8 @@ export class EmployersService {
         description: dto.description ?? employer.description,
         website: dto.website ?? employer.website,
         logoUrl: dto.logoUrl ?? employer.logoUrl,
-        coverImageUrl: dto.coverImageUrl ?? employer.coverImageUrl,
-        foundedYear: dto.foundedYear ?? employer.foundedYear,
-        companySize: dto.companySize ?? employer.companySize,
+        foundedDate: dto.foundedDate ?? employer.foundedDate,
+        employerCategory: dto.employerCategory ?? employer.employerCategory,
         contactEmail: dto.contactEmail ?? employer.contactEmail,
         contactPhone: dto.contactPhone ?? employer.contactPhone,
         linkedlnUrl: dto.linkedlnUrl ?? employer.linkedlnUrl,
@@ -263,96 +264,93 @@ export class EmployersService {
         technologies: dto.technologies ?? employer.technologies,
       });
 
-      // Auto approve
-      employer.isApproved = true;
-      employer.status = EmployerStatus.ACTIVE;
-      employer.profileStatus = EmployerProfileStatus.APPROVED;
-      await queryRunner.manager.save(employer);
+      // AUTO-APPROVE LOGIC
+      if (!employer.isApproved) {
+        employer.isApproved = true;
+        employer.status = EmployerStatus.ACTIVE;
+        employer.profileStatus = EmployerProfileStatus.APPROVED;
+      }
 
-      // Sync locations (CRUD)
-      const incomingLocations = dto.locations ?? [];
+      await manager.save(employer);
+
+      const incoming = dto.locations ?? [];
+      const existing = employer.locations ?? [];
+
       const incomingIds = new Set(
-        incomingLocations.filter((l) => l.id).map((l) => l.id as string),
+        incoming.filter((l) => l.id).map((l) => l.id as string),
       );
 
-      // Delete removed locations
-      if (employer.locations && employer.locations.length > 0) {
-        const toDelete = employer.locations.filter(
+      // DELETE (chỉ khi client gửi ID)
+      if (incomingIds.size > 0) {
+        const toDelete = existing.filter(
           (loc) => loc.id && !incomingIds.has(loc.id),
         );
-        if (toDelete.length > 0) {
-          await queryRunner.manager.remove(toDelete);
+        if (toDelete.length) {
+          await manager.remove(toDelete);
         }
       }
 
-      // Upsert incoming locations
-      for (const locDto of incomingLocations) {
-        if (locDto.id) {
-          const existingLoc = await this.locationRepository.findOne({
-            where: { id: locDto.id, employerId: employer.id },
+      let headquartersId: string | null = null;
+
+      // UPDATE / CREATE
+      for (const loc of incoming) {
+        if (loc.id) {
+          const entity = existing.find((e) => e.id === loc.id);
+          if (!entity) continue;
+
+          Object.assign(entity, {
+            province: loc.province ?? entity.province,
+            district: loc.district ?? entity.district,
+            detailedAddress: loc.detailedAddress ?? entity.detailedAddress,
+            isHeadquarters: loc.isHeadquarters ?? entity.isHeadquarters,
           });
-          if (existingLoc) {
-            Object.assign(existingLoc, {
-              isHeadquarters:
-                locDto.isHeadquarters ?? existingLoc.isHeadquarters,
-              province: locDto.province ?? existingLoc.province,
-              district: locDto.district ?? existingLoc.district,
-              detailedAddress:
-                locDto.detailedAddress ?? existingLoc.detailedAddress,
-            });
 
-            if (locDto.isHeadquarters) {
-              await queryRunner.manager.update(
-                EmployerLocation,
-                { employerId: employer.id, isHeadquarters: true },
-                { isHeadquarters: false },
-              );
-            }
+          await manager.save(entity);
 
-            await queryRunner.manager.save(existingLoc);
+          if (entity.isHeadquarters) {
+            headquartersId = entity.id;
           }
-        } else if (
-          locDto.province &&
-          locDto.district &&
-          locDto.detailedAddress
-        ) {
-          const newLoc = this.locationRepository.create({
+        } else if (loc.province && loc.district && loc.detailedAddress) {
+          const created = manager.create(EmployerLocation, {
             employerId: employer.id,
-            isHeadquarters: locDto.isHeadquarters ?? false,
-            province: locDto.province,
-            district: locDto.district,
-            detailedAddress: locDto.detailedAddress,
+            province: loc.province,
+            district: loc.district,
+            detailedAddress: loc.detailedAddress,
+            isHeadquarters: loc.isHeadquarters ?? false,
           });
 
-          if (newLoc.isHeadquarters) {
-            await queryRunner.manager.update(
-              EmployerLocation,
-              { employerId: employer.id, isHeadquarters: true },
-              { isHeadquarters: false },
-            );
-          }
+          await manager.save(created);
 
-          await queryRunner.manager.save(newLoc);
+          if (created.isHeadquarters) {
+            headquartersId = created.id;
+          }
         }
       }
 
-      // Ensure at least one headquarters
-      const updatedLocations = await this.locationRepository.find({
-        where: { employerId: employer.id },
-        order: { createdAt: 'ASC' },
-      });
-      if (
-        updatedLocations.length > 0 &&
-        !updatedLocations.some((l) => l.isHeadquarters)
-      ) {
-        updatedLocations[0].isHeadquarters = true;
-        await queryRunner.manager.save(updatedLocations[0]);
+      // ENSURE SINGLE HEADQUARTERS
+      if (headquartersId) {
+        await manager.update(
+          EmployerLocation,
+          {
+            employerId: employer.id,
+            id: Not(headquartersId),
+          },
+          { isHeadquarters: false },
+        );
+      } else {
+        const first = await manager.findOne(EmployerLocation, {
+          where: { employerId: employer.id },
+          order: { createdAt: 'ASC' },
+        });
+        if (first) {
+          first.isHeadquarters = true;
+          await manager.save(first);
+        }
       }
-
-      // Auto-activate user if present
-      if (employer.user) {
+      // Ensure user is ACTIVE
+      if (employer.user && employer.user.status !== UserStatus.ACTIVE) {
         employer.user.status = UserStatus.ACTIVE;
-        await queryRunner.manager.save(employer.user);
+        await manager.save(employer.user);
       }
 
       await queryRunner.commitTransaction();
@@ -487,9 +485,10 @@ export class EmployersService {
         description: dto.description ?? employer.description,
         website: dto.website ?? employer.website,
         logoUrl: dto.logoUrl ?? employer.logoUrl,
-        coverImageUrl: dto.coverImageUrl ?? employer.coverImageUrl,
-        foundedYear: dto.foundedYear ?? employer.foundedYear,
-        companySize: dto.companySize ?? employer.companySize,
+        // coverImageUrl: dto.coverImageUrl ?? employer.coverImageUrl,
+        foundedDate: dto.foundedDate ?? employer.foundedDate,
+        employerCategory: dto.employerCategory ?? employer.employerCategory,
+        // companySize: dto.companySize ?? employer.companySize,
         contactEmail: dto.contactEmail ?? employer.contactEmail,
         contactPhone: dto.contactPhone ?? employer.contactPhone,
         linkedlnUrl: dto.linkedlnUrl ?? employer.linkedlnUrl,
@@ -583,6 +582,12 @@ export class EmployersService {
         employerUser.status = UserStatus.PENDING_APPROVAL;
         await queryRunner.manager.save(employerUser);
       }
+
+      //Update employer profile status, is approved and employer status
+      reloadedEmployer.profileStatus =
+        EmployerProfileStatus.PENDING_NEW_APPROVAL;
+      reloadedEmployer.status = EmployerStatus.PENDING_APPROVAL;
+      await queryRunner.manager.save(reloadedEmployer);
 
       await queryRunner.commitTransaction();
 
@@ -746,6 +751,14 @@ export class EmployersService {
     return !!(
       employer.companyName &&
       employer.description &&
+      employer.foundedDate &&
+      employer.employerCategory &&
+      employer.benefits &&
+      employer.technologies &&
+      (employer.xUrl ||
+        employer.facebookUrl ||
+        employer.linkedlnUrl ||
+        employer.contactEmail) &&
       employer.logoUrl &&
       employer.locations &&
       employer.locations.length > 0
@@ -782,9 +795,10 @@ export class EmployersService {
       description: employer.description,
       website: employer.website,
       logoUrl: employer.logoUrl,
-      coverImageUrl: employer.coverImageUrl,
-      foundedYear: employer.foundedYear,
-      companySize: employer.companySize,
+      // coverImageUrl: employer.coverImageUrl,
+      foundedDate: employer.foundedDate,
+      employerCategory: employer.employerCategory,
+      // companySize: employer.companySize,
       contactEmail: employer.contactEmail,
       contactPhone: employer.contactPhone,
       linkedlnUrl: employer.linkedlnUrl,
