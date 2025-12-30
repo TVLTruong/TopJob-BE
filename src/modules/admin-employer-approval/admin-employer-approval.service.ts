@@ -78,21 +78,23 @@ export class AdminEmployerApprovalService {
     const qb = this.employerRepository
       .createQueryBuilder('employer')
       .leftJoinAndSelect('employer.user', 'user')
-      .leftJoinAndSelect('employer.pendingEdits', 'pendingEdits')
-      .where('employer.status = :pendingStatus', {
-        pendingStatus: EmployerStatus.PENDING_APPROVAL,
-      });
+      .leftJoinAndSelect('employer.pendingEdits', 'pendingEdits');
 
     /**
      * CASE 1 – New approval
+     * employer.status = PENDING_APPROVAL
+     * user.status = PENDING_APPROVAL
+     * profileStatus = PENDING_NEW_APPROVAL
      */
     if (approvalType === EmployerApprovalType.NEW) {
-      qb.andWhere(
+      qb.where(
         `
-      user.status = :userPending
+      employer.status = :employerPending
+      AND user.status = :userPending
       AND employer.profileStatus = :profileNew
       `,
         {
+          employerPending: EmployerStatus.PENDING_APPROVAL,
           userPending: UserStatus.PENDING_APPROVAL,
           profileNew: EmployerProfileStatus.PENDING_NEW_APPROVAL,
         },
@@ -101,14 +103,19 @@ export class AdminEmployerApprovalService {
 
     /**
      * CASE 2 – Edit approval
+     * employer.status = ACTIVE (vẫn active, chỉ có pending edits)
+     * user.status = ACTIVE
+     * profileStatus = PENDING_EDIT_APPROVAL
      */
     if (approvalType === EmployerApprovalType.EDIT) {
-      qb.andWhere(
+      qb.where(
         `
-      user.status = :userActive
+      employer.status = :employerActive
+      AND user.status = :userActive
       AND employer.profileStatus = :profileEdit
       `,
         {
+          employerActive: EmployerStatus.ACTIVE,
           userActive: UserStatus.ACTIVE,
           profileEdit: EmployerProfileStatus.PENDING_EDIT_APPROVAL,
         },
@@ -116,27 +123,31 @@ export class AdminEmployerApprovalService {
     }
 
     /**
-     * CASE 3 – ALL
+     * CASE 3 – ALL (both new and edit)
      */
     if (approvalType === EmployerApprovalType.ALL) {
-      qb.andWhere(
+      qb.where(
         `
       (
         (
-          user.status = :userPending
+          employer.status = :employerPending
+          AND user.status = :userPending
           AND employer.profileStatus = :profileNew
         )
         OR
         (
-          user.status = :userActive
+          employer.status = :employerActive
+          AND user.status = :userActive
           AND employer.profileStatus = :profileEdit
         )
       )
       `,
         {
+          employerPending: EmployerStatus.PENDING_APPROVAL,
           userPending: UserStatus.PENDING_APPROVAL,
-          userActive: UserStatus.ACTIVE,
           profileNew: EmployerProfileStatus.PENDING_NEW_APPROVAL,
+          employerActive: EmployerStatus.ACTIVE,
+          userActive: UserStatus.ACTIVE,
           profileEdit: EmployerProfileStatus.PENDING_EDIT_APPROVAL,
         },
       );
@@ -298,8 +309,39 @@ export class AdminEmployerApprovalService {
           // Apply pending edits to employer
           for (const edit of employer.pendingEdits) {
             const fieldName = edit.fieldName;
-            if (fieldName in employer) {
-              employer[fieldName as keyof Employer] = edit.newValue as never;
+            const newValue = edit.newValue;
+
+            if (!newValue) {
+              this.logger.warn(
+                `Pending edit for field ${fieldName} has no new value. Skipping.`,
+              );
+              continue;
+            }
+
+            // Parse JSON fields
+            if (
+              fieldName === 'employerCategory' ||
+              fieldName === 'technologies' ||
+              fieldName === 'benefits'
+            ) {
+              try {
+                // employer[fieldName] = JSON.parse(newValue);
+                const parsedValue = JSON.parse(newValue) as string[];
+                employer[fieldName] = parsedValue;
+              } catch (error) {
+                this.logger.error(
+                  `Failed to parse ${fieldName}: ${(error as Error).message}`,
+                );
+                throw new BadRequestException(
+                  `Không thể parse dữ liệu ${fieldName}`,
+                );
+              }
+            } else if (fieldName === 'locations') {
+              // Skip locations - will be handled separately
+              continue;
+            } else if (fieldName in employer) {
+              // Simple string fields
+              employer[fieldName as keyof Employer] = newValue as never;
             }
           }
 

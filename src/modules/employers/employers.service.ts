@@ -10,6 +10,7 @@ import { Repository, DataSource, In, Not } from 'typeorm';
 import {
   Employer,
   EmployerLocation,
+  EmployerPendingEdit,
   User,
   Application,
   Job,
@@ -33,7 +34,6 @@ import {
   GetApplicationsQueryDto,
   ApplicationListItemDto,
 } from './dto';
-import { EmployerPendingEdit } from '../../database/entities/employer-pending-edit.entity';
 import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
 import { createPaginationResponse } from '../../common/utils/query-builder.util';
 
@@ -96,7 +96,9 @@ export class EmployersService {
   }
 
   /**
-   * Update employer profile (Next Step after registration)
+   * Update employer profile and save changes to pending_edit table
+   * Changes will only be applied after admin approval
+   * Used by PUT /employers/me (ownership by user.id from JWT)
    * UC-EMP-01: Hoàn thiện hồ sơ nhà tuyển dụng
    */
   async updateProfile(
@@ -118,96 +120,200 @@ export class EmployersService {
     await queryRunner.startTransaction();
 
     try {
-      // Update employer fields
-      Object.assign(employer, {
-        fullName: dto.fullName ?? employer.fullName,
-        workTitle: dto.workTitle ?? employer.workTitle,
-        companyName: dto.companyName ?? employer.companyName,
-        description: dto.description ?? employer.description,
-        website: dto.website ?? employer.website,
-        logoUrl: dto.logoUrl ?? employer.logoUrl,
-        employerCategory: dto.employerCategory ?? employer.employerCategory,
-        // coverImageUrl: dto.coverImageUrl ?? employer.coverImageUrl,
-        foundedDate: dto.foundedDate ?? employer.foundedDate,
-        // companySize: dto.companySize ?? employer.companySize,
-        contactEmail: dto.contactEmail ?? employer.contactEmail,
-        contactPhone: dto.contactPhone ?? employer.contactPhone,
-        linkedlnUrl: dto.linkedlnUrl ?? employer.linkedlnUrl,
-        facebookUrl: dto.facebookUrl ?? employer.facebookUrl,
-        xUrl: dto.xUrl ?? employer.xUrl,
-        benefits: dto.benefits ?? employer.benefits,
-      });
+      const manager = queryRunner.manager;
 
-      await queryRunner.manager.save(employer);
+      // Helper function to convert value to string or null
+      const valueToString = (value: any): string | null => {
+        if (value === null || value === undefined) return null;
+        if (value instanceof Date) return value.toISOString();
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+      };
 
-      // Handle locations if provided
-      if (dto.locations && dto.locations.length > 0) {
-        for (const locDto of dto.locations) {
-          if (locDto.id) {
-            // Update existing location
-            const existingLoc = await this.locationRepository.findOne({
-              where: { id: locDto.id, employerId: employer.id },
-            });
+      // Helper to check if two values are equal
+      const valuesEqual = (oldVal: any, newVal: any): boolean => {
+        if (oldVal === newVal) return true;
+        if (oldVal == null || newVal == null) return oldVal === newVal;
 
-            if (existingLoc) {
-              Object.assign(existingLoc, {
-                isHeadquarters:
-                  locDto.isHeadquarters ?? existingLoc.isHeadquarters,
-                province: locDto.province ?? existingLoc.province,
-                district: locDto.district ?? existingLoc.district,
-                detailedAddress:
-                  locDto.detailedAddress ?? existingLoc.detailedAddress,
-              });
+        // Special handling for Date objects
+        if (oldVal instanceof Date && newVal instanceof Date) {
+          return oldVal.getTime() === newVal.getTime();
+        }
 
-              // If setting as headquarters, unset others
-              if (locDto.isHeadquarters) {
-                await queryRunner.manager.update(
-                  EmployerLocation,
-                  { employerId: employer.id, isHeadquarters: true },
-                  { isHeadquarters: false },
-                );
-              }
+        // For other types, use strict equality
+        return oldVal === newVal;
+      };
 
-              await queryRunner.manager.save(existingLoc);
-            }
-          } else {
-            // Create new location
-            if (locDto.province && locDto.district && locDto.detailedAddress) {
-              const newLoc = this.locationRepository.create({
-                employerId: employer.id,
-                isHeadquarters: locDto.isHeadquarters ?? false,
-                province: locDto.province,
-                district: locDto.district,
-                detailedAddress: locDto.detailedAddress,
-              });
+      // Prepare pending edits array
+      const pendingEdits: Array<{
+        fieldName: string;
+        oldValue: string | null;
+        newValue: string | null;
+      }> = [];
 
-              // If setting as headquarters, unset others
-              if (newLoc.isHeadquarters) {
-                await queryRunner.manager.update(
-                  EmployerLocation,
-                  { employerId: employer.id, isHeadquarters: true },
-                  { isHeadquarters: false },
-                );
-              }
+      // Track all field changes
+      const fieldMappings: Array<{
+        dtoKey: keyof UpdateEmployerProfileDto;
+        fieldName: string;
+        currentValue: any;
+      }> = [
+        {
+          dtoKey: 'fullName',
+          fieldName: 'fullName',
+          currentValue: employer.fullName,
+        },
+        {
+          dtoKey: 'workTitle',
+          fieldName: 'workTitle',
+          currentValue: employer.workTitle,
+        },
+        {
+          dtoKey: 'companyName',
+          fieldName: 'companyName',
+          currentValue: employer.companyName,
+        },
+        {
+          dtoKey: 'description',
+          fieldName: 'description',
+          currentValue: employer.description,
+        },
+        {
+          dtoKey: 'website',
+          fieldName: 'website',
+          currentValue: employer.website,
+        },
+        {
+          dtoKey: 'logoUrl',
+          fieldName: 'logoUrl',
+          currentValue: employer.logoUrl,
+        },
+        {
+          dtoKey: 'foundedDate',
+          fieldName: 'foundedDate',
+          currentValue: employer.foundedDate,
+        },
+        {
+          dtoKey: 'contactEmail',
+          fieldName: 'contactEmail',
+          currentValue: employer.contactEmail,
+        },
+        {
+          dtoKey: 'contactPhone',
+          fieldName: 'contactPhone',
+          currentValue: employer.contactPhone,
+        },
+        {
+          dtoKey: 'linkedlnUrl',
+          fieldName: 'linkedlnUrl',
+          currentValue: employer.linkedlnUrl,
+        },
+        {
+          dtoKey: 'facebookUrl',
+          fieldName: 'facebookUrl',
+          currentValue: employer.facebookUrl,
+        },
+        { dtoKey: 'xUrl', fieldName: 'xUrl', currentValue: employer.xUrl },
+      ];
 
-              await queryRunner.manager.save(newLoc);
-            }
-          }
+      // Check simple fields
+      for (const { dtoKey, fieldName, currentValue } of fieldMappings) {
+        const newValue = dto[dtoKey];
+        if (newValue !== undefined && !valuesEqual(currentValue, newValue)) {
+          pendingEdits.push({
+            fieldName,
+            // oldValue: currentValue ? String(currentValue) : null,
+            // newValue: newValue ? String(newValue) : null,
+            oldValue: valueToString(currentValue),
+            newValue: valueToString(newValue),
+          });
         }
       }
 
-      // Update user status if profile is complete
+      // Check array fields (employerCategory, benefits, technologies)
+      if (dto.employerCategory !== undefined) {
+        const oldValue = JSON.stringify(employer.employerCategory || []);
+        const newValue = JSON.stringify(dto.employerCategory);
+        if (oldValue !== newValue) {
+          pendingEdits.push({
+            fieldName: 'employerCategory',
+            oldValue,
+            newValue,
+          });
+        }
+      }
+
+      if (dto.benefits !== undefined) {
+        const oldValue = JSON.stringify(employer.benefits || []);
+        const newValue = JSON.stringify(dto.benefits);
+        if (oldValue !== newValue) {
+          pendingEdits.push({
+            fieldName: 'benefits',
+            oldValue,
+            newValue,
+          });
+        }
+      }
+
+      if (dto.technologies !== undefined) {
+        const oldValue = JSON.stringify(employer.technologies || []);
+        const newValue = JSON.stringify(dto.technologies);
+        if (oldValue !== newValue) {
+          pendingEdits.push({
+            fieldName: 'technologies',
+            oldValue,
+            newValue,
+          });
+        }
+      }
+
+      // Check locations changes
+      if (dto.locations !== undefined) {
+        const oldValue = JSON.stringify(employer.locations || []);
+        const newValue = JSON.stringify(dto.locations);
+        if (oldValue !== newValue) {
+          pendingEdits.push({
+            fieldName: 'locations',
+            oldValue,
+            newValue,
+          });
+        }
+      }
+
+      // Only proceed if there are actual changes
+      if (pendingEdits.length === 0) {
+        await queryRunner.commitTransaction();
+        return this.getProfileByUserId(userId);
+      }
+
+      // Delete existing pending edits for these fields
+      const fieldNames = pendingEdits.map((edit) => edit.fieldName);
+      await manager.delete(EmployerPendingEdit, {
+        employerId: employer.id,
+        fieldName: In(fieldNames),
+      });
+
+      // Insert new pending edits
+      for (const edit of pendingEdits) {
+        const pendingEdit = manager.create(EmployerPendingEdit, {
+          employerId: employer.id,
+          fieldName: edit.fieldName,
+          oldValue: edit.oldValue,
+          newValue: edit.newValue,
+        });
+        await manager.save(pendingEdit);
+      }
+
+      // Update profile status to pending approval
+      employer.profileStatus = EmployerProfileStatus.PENDING_EDIT_APPROVAL;
+      await manager.save(employer);
+
+      // Update user status if profile is complete (for first-time profile completion)
       const user = employer.user;
       if (user && user.status === UserStatus.PENDING_PROFILE_COMPLETION) {
-        // Reload employer with locations to check completeness
-        const reloadedEmployer = await queryRunner.manager.findOne(Employer, {
-          where: { id: employer.id },
-          relations: ['locations'],
-        });
-
-        if (reloadedEmployer && this.isProfileComplete(reloadedEmployer)) {
+        // For first-time completion, we still need to check if profile has minimum required fields
+        if (this.isProfileComplete(employer)) {
           user.status = UserStatus.ACTIVE;
-          await queryRunner.manager.save(user);
+          await manager.save(user);
         }
       }
 
@@ -219,6 +325,7 @@ export class EmployersService {
       await queryRunner.release();
     }
 
+    // Return current unchanged profile (not the pending changes)
     return this.getProfileByUserId(userId);
   }
 
