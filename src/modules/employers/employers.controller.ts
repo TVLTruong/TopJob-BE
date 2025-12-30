@@ -25,7 +25,8 @@ import { EmployersService } from './employers.service';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { UserRole } from '../../common/enums';
-import type { JwtPayload } from '../auth/services/jwt.service';
+// import type { JwtPayload } from '../auth/services/jwt.service';
+import type { AuthenticatedUser } from '../../common/types/express';
 import {
   UpdateEmployerProfileDto,
   EmployerProfileResponseDto,
@@ -72,9 +73,9 @@ export class EmployersController {
     description: 'Không tìm thấy hồ sơ nhà tuyển dụng',
   })
   async getMyProfile(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.getProfileByUserId(user.sub);
+    return this.employersService.getProfileByUserId(user.id);
   }
 
   /**
@@ -102,10 +103,10 @@ export class EmployersController {
     description: 'Dữ liệu không hợp lệ',
   })
   async updateMyProfile(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateEmployerProfileDto,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.updateProfile(user.sub, dto);
+    return this.employersService.updateProfile(user.id, dto);
   }
 
   /**
@@ -129,10 +130,10 @@ export class EmployersController {
     description: 'Đã đạt giới hạn số lượng địa điểm hoặc dữ liệu không hợp lệ',
   })
   async addLocation(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: AddLocationDto,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.addLocation(user.sub, dto);
+    return this.employersService.addLocation(user.id, dto);
   }
 
   /**
@@ -151,9 +152,9 @@ export class EmployersController {
     type: [EmployerLocationResponseDto],
   })
   async getMyLocations(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<EmployerLocationResponseDto[]> {
-    return this.employersService.getLocations(user.sub);
+    return this.employersService.getLocations(user.id);
   }
 
   /**
@@ -176,10 +177,10 @@ export class EmployersController {
     type: EmployerProfileResponseDto,
   })
   async setHeadquarters(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('locationId') locationId: string,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.setHeadquarters(user.sub, locationId);
+    return this.employersService.setHeadquarters(user.id, locationId);
   }
 
   /**
@@ -206,10 +207,10 @@ export class EmployersController {
     description: 'Không tìm thấy địa điểm',
   })
   async deleteLocation(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('locationId') locationId: string,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.deleteLocation(user.sub, locationId);
+    return this.employersService.deleteLocation(user.id, locationId);
   }
 
   /**
@@ -262,10 +263,10 @@ export class EmployersController {
     description: 'jobId không thuộc employer hiện tại',
   })
   async getAllApplications(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: GetApplicationsQueryDto,
   ): Promise<PaginationResponseDto<ApplicationListItemDto>> {
-    return await this.employersService.getAllApplications(user.sub, query);
+    return await this.employersService.getAllApplications(user.id, query);
   }
 
   /**
@@ -293,10 +294,10 @@ export class EmployersController {
     description: 'Không tìm thấy đơn ứng tuyển hoặc không có quyền truy cập',
   })
   async getApplicationDetail(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('applicationId') applicationId: string,
   ): Promise<ApplicationDetailResponseDto> {
-    return this.employersService.getApplicationDetail(user.sub, applicationId);
+    return this.employersService.getApplicationDetail(user.id, applicationId);
   }
 
   /**
@@ -335,12 +336,12 @@ export class EmployersController {
     description: 'Không tìm thấy đơn ứng tuyển hoặc không có quyền truy cập',
   })
   async updateApplicationStatus(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') applicationId: string,
     @Param() params: ActionApplicationParamDto,
   ): Promise<UpdateApplicationStatusResponseDto> {
     return this.employersService.updateApplicationStatus(
-      user.sub,
+      user.id,
       applicationId,
       params.action,
     );

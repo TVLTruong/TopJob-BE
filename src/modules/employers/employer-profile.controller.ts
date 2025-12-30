@@ -19,7 +19,7 @@ import { EmployersService } from './employers.service';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { UserRole } from '../../common/enums';
-import type { JwtPayload } from '../auth/services/jwt.service';
+// import type { JwtPayload } from '../auth/services/jwt.service';
 import {
   EmployerProfileResponseDto,
   SubmitEmployerProfileResponseDto,
@@ -63,9 +63,9 @@ export class EmployerProfileController {
     description: 'Không tìm thấy hồ sơ nhà tuyển dụng',
   })
   async getMyEmployerProfile(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.getProfileByUserId(user.sub);
+    return this.employersService.getProfileByUserId(user.id);
   }
 
   /**
@@ -135,10 +135,10 @@ export class EmployerProfileController {
     description: 'Dữ liệu không hợp lệ',
   })
   async updateEmployerProfile(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateEmployerProfileDto,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.updateProfileAutoApprove(user.sub, dto);
+    return this.employersService.updateProfileAutoApprove(user.id, dto);
   }
 
   /**
@@ -167,9 +167,9 @@ export class EmployerProfileController {
     description: 'Không có thay đổi nhạy cảm hoặc dữ liệu không hợp lệ',
   })
   async submitSensitiveChanges(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateEmployerProfileDto,
   ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.submitSensitiveEdit(user.sub, dto);
+    return this.employersService.submitSensitiveEdit(user.id, dto);
   }
 }
