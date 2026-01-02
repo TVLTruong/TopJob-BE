@@ -213,7 +213,7 @@ export class UpdateEmployerProfileDto {
     example: ['Công nghệ thông tin', 'Tài chính', 'Marketing'],
     type: [String],
   })
-  // @IsOptional()
+  @IsOptional()
   @IsArray({ message: 'Danh mục nhà tuyển dụng phải là mảng' })
   @IsString({
     each: true,
@@ -227,7 +227,7 @@ export class UpdateEmployerProfileDto {
     example: ['React', 'Node.js', 'PostgreSQL', 'Docker'],
     type: [String],
   })
-  // @IsOptional()
+  @IsOptional()
   @IsArray({ message: 'Công nghệ phải là mảng' })
   @IsString({ each: true, message: 'Mỗi công nghệ phải là chuỗi' })
   technologies?: string[];
