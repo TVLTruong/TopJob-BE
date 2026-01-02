@@ -219,14 +219,14 @@ export class EmployerJobsController {
 
   /**
    * DELETE /employer/jobs/:jobId
-   * Xóa job (soft delete - chuyển status về REMOVED_BY_ADMIN)
+   * Xóa job (soft delete - chuyển status về REMOVED_BY_EMPLOYER)
    */
   @Delete(':jobId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Xóa tin tuyển dụng',
     description:
-      'Soft delete - chuyển status về REMOVED_BY_ADMIN. Chỉ owner được xóa.',
+      'Soft delete - chuyển status về REMOVED_BY_EMPLOYER. Chỉ owner được xóa.',
   })
   @ApiResponse({
     status: HttpStatus.OK,

@@ -14,6 +14,7 @@ export enum JobStatus {
   HIDDEN = 'hidden', // Ẩn bởi NTD (UCEMP04)
   REJECTED = 'rejected', // Bị admin từ chối (UCADM02)
   REMOVED_BY_ADMIN = 'removed_by_admin', // Gỡ bởi admin (UCADM05)
+  REMOVED_BY_EMPLOYER = 'removed_by_employer', // Xóa bởi employer (UCEMP04)
 }
 
 /**
@@ -56,6 +57,7 @@ export const JobStatusLabel: Record<JobStatus, string> = {
   [JobStatus.HIDDEN]: 'Đã ẩn',
   [JobStatus.REJECTED]: 'Bị từ chối',
   [JobStatus.REMOVED_BY_ADMIN]: 'Đã gỡ bởi admin',
+  [JobStatus.REMOVED_BY_EMPLOYER]: 'Đã xóa bởi nhà tuyển dụng',
 };
 
 /**

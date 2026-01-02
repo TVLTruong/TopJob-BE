@@ -335,6 +335,7 @@ export class JobsService {
 
   /**
    * Get jobs for current employer with pagination
+   * Excludes jobs with status REMOVED_BY_ADMIN or REMOVED_BY_EMPLOYER
    */
   async getJobsForEmployer(
     userId: string,
@@ -351,6 +352,12 @@ export class JobsService {
     const queryBuilder = this.jobRepo
       .createQueryBuilder('job')
       .where('job.employerId = :employerId', { employerId: employer.id })
+      .andWhere('job.status NOT IN (:...removedStatuses)', {
+        removedStatuses: [
+          JobStatus.REMOVED_BY_ADMIN,
+          JobStatus.REMOVED_BY_EMPLOYER,
+        ],
+      })
       .orderBy('job.createdAt', 'DESC');
 
     return createPaginationResponse(
@@ -585,7 +592,7 @@ export class JobsService {
   }
 
   /**
-   * Delete job (soft delete - change status to REMOVED_BY_ADMIN)
+   * Delete job (soft delete - change status to REMOVED_BY_EMPLOYER)
    * Employer can delete their own jobs
    */
   async deleteJobForEmployer(
@@ -609,11 +616,14 @@ export class JobsService {
     }
 
     // Allow deletion from any status except already removed
-    if (job.status === JobStatus.REMOVED_BY_ADMIN) {
+    if (
+      job.status === JobStatus.REMOVED_BY_ADMIN ||
+      job.status === JobStatus.REMOVED_BY_EMPLOYER
+    ) {
       throw new BadRequestException('Tin tuyển dụng đã bị xóa');
     }
 
-    job.status = JobStatus.REMOVED_BY_ADMIN;
+    job.status = JobStatus.REMOVED_BY_EMPLOYER;
     const saved = await this.jobRepo.save(job);
     return { jobId: saved.id, status: saved.status };
   }
