@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, DeepPartial } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import { Job } from '../../database/entities/job.entity'; // 👈 Nối dây (Lớp 1)
 import { Employer } from '../../database/entities/employer.entity';
 import { EmployerLocation } from '../../database/entities/employer-location.entity';
@@ -63,7 +63,7 @@ export class JobsService {
     // 2. Filter cơ bản: Chỉ lấy ACTIVE jobs và chưa hết hạn
     queryBuilder
       .where('job.status = :status', { status: JobStatus.ACTIVE })
-      .andWhere('job.deadline > :now', { now: new Date() });
+      .andWhere('job.expiredAt > :now', { now: new Date() });
 
     // 3. Tìm kiếm theo keyword (title hoặc description)
     if (dto.keyword && dto.keyword.trim()) {
@@ -141,7 +141,7 @@ export class JobsService {
     // 2. Chỉ lấy tin "ACTIVE" (Dịch từ UC-GUEST-01, Bước 4 [cite: 190])
     queryBuilder
       .where('job.status = :status', { status: JobStatus.ACTIVE })
-      .andWhere('job.deadline > :now', { now: new Date() }); // (Và "còn hạn")
+      .andWhere('job.expiredAt > :now', { now: new Date() }); // (Và "còn hạn")
 
     // 3. Lọc theo Từ khóa (q) (Dịch từ Bước 1 [cite: 187])
     if (dto.q) {
@@ -177,14 +177,14 @@ export class JobsService {
   /**
    * PUBLIC API - Xem chi tiết Job công khai
    * UC-GUEST-02: Xem chi tiết việc làm
-   * 
+   *
    * Features:
    * - Hỗ trợ tìm kiếm bằng ID hoặc Slug
    * - Chỉ cho phép xem jobs có status = ACTIVE
    * - Load đầy đủ employer profile và location
    * - Xử lý rõ ràng các trường hợp: EXPIRED, DELETED, NOT_FOUND
    * - Tự động tăng view count
-   * 
+   *
    * @param identifier - Job ID hoặc Job Slug
    * @returns Job với đầy đủ thông tin
    * @throws NotFoundException - Job không tồn tại, đã hết hạn hoặc không active
@@ -195,15 +195,8 @@ export class JobsService {
 
     // 2. Tìm job theo ID hoặc Slug (không filter status để xử lý message cụ thể)
     const job = await this.jobRepo.findOne({
-      where: isNumericId
-        ? { id: identifier }
-        : { slug: identifier },
-      relations: [
-        'employer',
-        'employer.user',
-        'location',
-        'category',
-      ],
+      where: isNumericId ? { id: identifier } : { slug: identifier },
+      relations: ['employer', 'employer.user', 'location', 'category'],
     });
 
     // 3. Job không tồn tại
@@ -235,22 +228,16 @@ export class JobsService {
       }
 
       if (job.status === JobStatus.REJECTED) {
-        throw new NotFoundException(
-          'Tin tuyển dụng này không được phê duyệt.',
-        );
+        throw new NotFoundException('Tin tuyển dụng này không được phê duyệt.');
       }
 
       // Các status khác (DRAFT, PENDING_APPROVAL, HIDDEN)
-      throw new NotFoundException(
-        'Tin tuyển dụng này không khả dụng.',
-      );
+      throw new NotFoundException('Tin tuyển dụng này không khả dụng.');
     }
 
-    // 5. Kiểm tra deadline
-    if (job.deadline && new Date(job.deadline) <= new Date()) {
-      throw new NotFoundException(
-        'Tin tuyển dụng này đã hết hạn ứng tuyển.',
-      );
+    // 5. Kiểm tra expiredAt
+    if (job.expiredAt && new Date(job.expiredAt) <= new Date()) {
+      throw new NotFoundException('Tin tuyển dụng này đã hết hạn ứng tuyển.');
     }
 
     // 6. Tăng view count (async, không chặn response)
@@ -322,14 +309,20 @@ export class JobsService {
       requirements: dto.requirements ?? undefined,
       responsibilities: dto.responsibilities ?? undefined,
       niceToHave: dto.niceToHave ?? undefined,
+      benefits: dto.benefits ?? undefined,
       salaryMin: dto.salaryMin ?? undefined,
       salaryMax: dto.salaryMax ?? undefined,
       isNegotiable: dto.isNegotiable ?? false,
-      jobType: dto.jobType,
+      isSalaryVisible: dto.isSalaryVisible ?? true,
+      salaryCurrency: dto.salaryCurrency ?? 'VND',
+      employmentType: dto.employmentType,
+      workMode: dto.workMode,
       experienceLevel: dto.experienceLevel ?? undefined,
-      positionsAvailable: dto.positionsAvailable ?? 1,
-      requiredSkills: dto.requiredSkills ?? undefined,
-      deadline: dto.deadline ? new Date(dto.deadline) : undefined,
+      experienceYearsMin: dto.experienceYearsMin ?? undefined,
+      quantity: dto.quantity ?? 1,
+      expiredAt: dto.expiredAt ? new Date(dto.expiredAt) : undefined,
+      isHot: dto.isHot ?? false,
+      isUrgent: dto.isUrgent ?? false,
       status: JobStatus.PENDING_APPROVAL,
       publishedAt: undefined,
     };
@@ -368,13 +361,9 @@ export class JobsService {
   }
 
   /**
-   * Update job for employer with ownership enforcement
+   * Get job detail for employer with ownership enforcement
    */
-  async updateJobForEmployer(
-    userId: string,
-    jobId: string,
-    dto: UpdateJobDto,
-  ): Promise<CreateJobResponseDto> {
+  async getJobDetailForEmployer(userId: string, jobId: string): Promise<Job> {
     const employer = await this.employerRepo.findOne({
       where: { userId },
     });
@@ -385,89 +374,114 @@ export class JobsService {
 
     const job = await this.jobRepo.findOne({
       where: { id: jobId, employerId: employer.id },
+      relations: ['employer', 'location', 'category'],
     });
 
     if (!job) {
       throw new NotFoundException('Không tìm thấy tin tuyển dụng');
     }
 
+    return job;
+  }
+
+  /**
+   * Update job for employer with ownership enforcement
+   */
+  async updateJobForEmployer(
+    userId: string,
+    jobId: string,
+    dto: UpdateJobDto,
+  ): Promise<CreateJobResponseDto> {
+    const employer = await this.employerRepo.findOne({ where: { userId } });
+    if (!employer)
+      throw new NotFoundException('Không tìm thấy hồ sơ nhà tuyển dụng');
+
+    const job = await this.jobRepo.findOne({
+      where: { id: jobId, employerId: employer.id },
+    });
+    if (!job) throw new NotFoundException('Không tìm thấy tin tuyển dụng');
+
     const ensureLocation = async (locId: string) => {
       const location = await this.locationRepo.findOne({
         where: { id: locId, employerId: employer.id },
       });
-      if (!location) {
+      if (!location)
         throw new BadRequestException('locationId không thuộc nhà tuyển dụng');
-      }
     };
+    if (dto.locationId) await ensureLocation(dto.locationId);
+
+    if (
+      typeof dto.salaryMin === 'number' &&
+      typeof dto.salaryMax === 'number' &&
+      dto.salaryMax < dto.salaryMin
+    )
+      throw new BadRequestException(
+        'salaryMax phải lớn hơn hoặc bằng salaryMin',
+      );
 
     let requiresReapproval = false;
     const originalTitle = job.title;
 
+    // compareAndSet type-safe
     const compareAndSet = <K extends keyof Job>(
       field: K,
       value: Job[K] | undefined,
     ) => {
-      if (typeof value === 'undefined') {
-        return;
-      }
+      if (value === undefined) return;
 
       const currentValue = job[field];
+
       let hasChanged = false;
 
       if (value instanceof Date && currentValue instanceof Date) {
         hasChanged = currentValue.getTime() !== value.getTime();
       } else if (Array.isArray(value) && Array.isArray(currentValue)) {
+        const sortedNew = [...value].sort();
+        const sortedCurrent = [...currentValue].sort();
         hasChanged =
-          JSON.stringify(currentValue ?? []) !== JSON.stringify(value ?? []);
+          JSON.stringify(sortedCurrent) !== JSON.stringify(sortedNew);
       } else if (value !== currentValue) {
         hasChanged = true;
       }
 
-      if (hasChanged) {
-        requiresReapproval = true;
-      }
+      if (hasChanged) requiresReapproval = true;
 
-      job[field] = value;
+      // Gán giá trị chỉ khi không phải null
+      if (value !== null) job[field] = value;
     };
 
-    if (dto.locationId) {
-      await ensureLocation(dto.locationId);
-    }
-
     compareAndSet('title', dto.title);
-    compareAndSet('description', dto.description);
-    compareAndSet('requirements', dto.requirements);
-    compareAndSet('responsibilities', dto.responsibilities);
-    compareAndSet('niceToHave', dto.niceToHave);
-    compareAndSet('salaryMin', dto.salaryMin);
-    compareAndSet('salaryMax', dto.salaryMax);
-    compareAndSet('isNegotiable', dto.isNegotiable);
-    compareAndSet('jobType', dto.jobType);
-    compareAndSet('experienceLevel', dto.experienceLevel);
-    compareAndSet('positionsAvailable', dto.positionsAvailable);
-    compareAndSet('requiredSkills', dto.requiredSkills);
+    compareAndSet('description', dto.description ?? undefined);
+    compareAndSet('requirements', dto.requirements ?? undefined);
+    compareAndSet('responsibilities', dto.responsibilities ?? undefined);
+    compareAndSet('niceToHave', dto.niceToHave ?? undefined);
+    compareAndSet('benefits', dto.benefits ?? undefined);
+    compareAndSet('salaryMin', dto.salaryMin ?? undefined);
+    compareAndSet('salaryMax', dto.salaryMax ?? undefined);
+    compareAndSet('isNegotiable', dto.isNegotiable ?? undefined);
+    compareAndSet('isSalaryVisible', dto.isSalaryVisible ?? undefined);
+    compareAndSet('salaryCurrency', dto.salaryCurrency ?? undefined);
+    compareAndSet('employmentType', dto.employmentType ?? undefined);
+    compareAndSet('workMode', dto.workMode ?? undefined);
+    compareAndSet('experienceLevel', dto.experienceLevel ?? undefined);
+    compareAndSet('experienceYearsMin', dto.experienceYearsMin ?? undefined);
+    compareAndSet('quantity', dto.quantity ?? undefined);
+    compareAndSet(
+      'expiredAt',
+      dto.expiredAt ? new Date(dto.expiredAt) : undefined,
+    );
+    compareAndSet('isHot', dto.isHot ?? undefined);
+    compareAndSet('isUrgent', dto.isUrgent ?? undefined);
+    compareAndSet('locationId', dto.locationId ?? undefined);
+    compareAndSet('categoryId', dto.categoryId ?? undefined);
 
-    if (typeof dto.deadline !== 'undefined') {
-      const nextDeadline = dto.deadline
-        ? new Date(dto.deadline as unknown as string)
-        : undefined;
-      compareAndSet('deadline', nextDeadline as unknown as Job['deadline']);
-    }
-
-    compareAndSet('locationId', dto.locationId);
-    compareAndSet('categoryId', dto.categoryId);
-
-    if (
-      typeof dto.title !== 'undefined' &&
-      dto.title &&
-      dto.title !== originalTitle
-    ) {
+    if (dto.title && dto.title !== originalTitle) {
       job.slug = this.generateSlug(dto.title);
     }
 
     if (requiresReapproval) {
       job.status = JobStatus.PENDING_APPROVAL;
-      job.publishedAt = null as unknown as Date;
+      job.publishedAt = null; // dùng undefined thay cho null
     }
 
     const saved = await this.jobRepo.save(job);
@@ -502,6 +516,104 @@ export class JobsService {
     }
 
     job.status = JobStatus.HIDDEN;
+    const saved = await this.jobRepo.save(job);
+    return { jobId: saved.id, status: saved.status };
+  }
+
+  /**
+   * Unhide job (only HIDDEN) with ownership enforcement
+   */
+  async unhideJobForEmployer(
+    userId: string,
+    jobId: string,
+  ): Promise<CreateJobResponseDto> {
+    const employer = await this.employerRepo.findOne({
+      where: { userId },
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Không tìm thấy hồ sơ nhà tuyển dụng');
+    }
+
+    const job = await this.jobRepo.findOne({
+      where: { id: jobId, employerId: employer.id },
+    });
+
+    if (!job) {
+      throw new NotFoundException('Không tìm thấy tin tuyển dụng');
+    }
+
+    if (job.status !== JobStatus.HIDDEN) {
+      throw new BadRequestException('Chỉ được hủy ẩn tin khi đang HIDDEN');
+    }
+
+    job.status = JobStatus.ACTIVE;
+    const saved = await this.jobRepo.save(job);
+    return { jobId: saved.id, status: saved.status };
+  }
+
+  /**
+   * Close job (change status to CLOSED) with ownership enforcement
+   */
+  async closeJobForEmployer(
+    userId: string,
+    jobId: string,
+  ): Promise<CreateJobResponseDto> {
+    const employer = await this.employerRepo.findOne({
+      where: { userId },
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Không tìm thấy hồ sơ nhà tuyển dụng');
+    }
+
+    const job = await this.jobRepo.findOne({
+      where: { id: jobId, employerId: employer.id },
+    });
+
+    if (!job) {
+      throw new NotFoundException('Không tìm thấy tin tuyển dụng');
+    }
+
+    if (job.status === JobStatus.CLOSED) {
+      throw new BadRequestException('Tin tuyển dụng đã kết thúc');
+    }
+
+    job.status = JobStatus.CLOSED;
+    const saved = await this.jobRepo.save(job);
+    return { jobId: saved.id, status: saved.status };
+  }
+
+  /**
+   * Delete job (soft delete - change status to REMOVED_BY_ADMIN)
+   * Employer can delete their own jobs
+   */
+  async deleteJobForEmployer(
+    userId: string,
+    jobId: string,
+  ): Promise<CreateJobResponseDto> {
+    const employer = await this.employerRepo.findOne({
+      where: { userId },
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Không tìm thấy hồ sơ nhà tuyển dụng');
+    }
+
+    const job = await this.jobRepo.findOne({
+      where: { id: jobId, employerId: employer.id },
+    });
+
+    if (!job) {
+      throw new NotFoundException('Không tìm thấy tin tuyển dụng');
+    }
+
+    // Allow deletion from any status except already removed
+    if (job.status === JobStatus.REMOVED_BY_ADMIN) {
+      throw new BadRequestException('Tin tuyển dụng đã bị xóa');
+    }
+
+    job.status = JobStatus.REMOVED_BY_ADMIN;
     const saved = await this.jobRepo.save(job);
     return { jobId: saved.id, status: saved.status };
   }

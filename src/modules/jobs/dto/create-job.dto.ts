@@ -1,108 +1,163 @@
 // src/modules/jobs/dto/create-job.dto.ts
 
 import {
-    IsArray,
-    IsBoolean,
-    IsDateString,
-    IsEnum,
-    IsInt,
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsPositive,
-    IsString,
-    MaxLength,
-    Min,
-    ValidateIf,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  MaxLength,
+  Min,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ExperienceLevel, JobType } from '../../../common/enums';
+import { ExperienceLevel, JobType, WorkMode } from '../../../common/enums';
 
 export class CreateJobDto {
-    @ApiProperty({ description: 'ID danh mục', example: '1' })
-    @IsString()
-    @IsNotEmpty()
-    categoryId: string;
+  @ApiProperty({ description: 'ID danh mục', example: '1' })
+  @IsString()
+  @IsNotEmpty()
+  categoryId: string;
 
-    @ApiProperty({ description: 'ID địa điểm (thuộc employer)', example: '10' })
-    @IsString()
-    @IsNotEmpty()
-    locationId: string;
+  @ApiProperty({ description: 'ID địa điểm (thuộc employer)', example: '10' })
+  @IsString()
+  @IsNotEmpty()
+  locationId: string;
 
-    @ApiProperty({ description: 'Tiêu đề tin tuyển dụng' })
-    @IsString()
-    @IsNotEmpty()
-    @MaxLength(255)
-    title: string;
+  @ApiProperty({ description: 'Tiêu đề tin tuyển dụng' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  title: string;
 
-    @ApiPropertyOptional({ description: 'Mô tả công việc' })
-    @IsOptional()
-    @IsString()
-    description?: string;
+  @ApiPropertyOptional({ description: 'Mô tả công việc' })
+  @IsOptional()
+  @IsString()
+  description?: string;
 
-    @ApiPropertyOptional({ description: 'Yêu cầu' })
-    @IsOptional()
-    @IsString()
-    requirements?: string;
+  @ApiPropertyOptional({
+    description: 'Yêu cầu (mỗi phần là 1 item trong array)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  requirements?: string[];
 
-    @ApiPropertyOptional({ description: 'Trách nhiệm' })
-    @IsOptional()
-    @IsString()
-    responsibilities?: string;
+  @ApiPropertyOptional({
+    description: 'Trách nhiệm (mỗi phần là 1 item trong array)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  responsibilities?: string[];
 
-    @ApiPropertyOptional({ description: 'Nice to have' })
-    @IsOptional()
-    @IsString()
-    niceToHave?: string;
+  @ApiPropertyOptional({
+    description: 'Nice to have (mỗi phần là 1 item trong array)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  niceToHave?: string[];
 
-    @ApiPropertyOptional({ description: 'Lương tối thiểu' })
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    salaryMin?: number;
+  @ApiPropertyOptional({
+    description: 'Phúc lợi (mỗi phần là 1 item trong array)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  benefits?: string[];
 
-    @ApiPropertyOptional({ description: 'Lương tối đa' })
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    @ValidateIf((o) => o.salaryMax === undefined || o.salaryMin === undefined || o.salaryMax >= o.salaryMin)
-    salaryMax?: number;
+  @ApiPropertyOptional({ description: 'Lương tối thiểu' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  salaryMin?: number | null;
 
-    @ApiPropertyOptional({ description: 'Có thể thương lượng', default: false })
-    @IsOptional()
-    @IsBoolean()
-    isNegotiable?: boolean;
+  @ApiPropertyOptional({ description: 'Lương tối đa' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @ValidateIf(
+    (o: CreateJobDto) =>
+      o.salaryMax === undefined ||
+      o.salaryMin === undefined ||
+      o.salaryMax === null ||
+      o.salaryMin === null ||
+      o.salaryMax >= o.salaryMin,
+  )
+  salaryMax?: number | null;
 
-    @ApiProperty({ description: 'Hình thức làm việc', enum: JobType })
-    @IsEnum(JobType)
-    jobType: JobType;
+  @ApiPropertyOptional({ description: 'Có thể thương lượng', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isNegotiable?: boolean;
 
-    @ApiPropertyOptional({
-        description: 'Cấp độ kinh nghiệm',
-        enum: ExperienceLevel,
-    })
-    @IsOptional()
-    @IsEnum(ExperienceLevel)
-    experienceLevel?: ExperienceLevel;
+  @ApiPropertyOptional({
+    description: 'Hiển thị lương công khai',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isSalaryVisible?: boolean;
 
-    @ApiPropertyOptional({ description: 'Số lượng tuyển', default: 1 })
-    @IsOptional()
-    @IsInt()
-    @IsPositive()
-    positionsAvailable?: number;
+  @ApiPropertyOptional({
+    description: 'Đơn vị tiền tệ',
+    default: 'VND',
+    maxLength: 10,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  salaryCurrency?: string;
 
-    @ApiPropertyOptional({
-        description: 'Kỹ năng yêu cầu',
-        type: [String],
-    })
-    @IsOptional()
-    @IsArray()
-    @IsString({ each: true })
-    requiredSkills?: string[];
+  @ApiProperty({ description: 'Loại hình công việc', enum: JobType })
+  @IsEnum(JobType)
+  employmentType: JobType;
 
-    @ApiPropertyOptional({ description: 'Hạn nộp (ISO date)' })
-    @IsOptional()
-    @IsDateString()
-    deadline?: string;
+  @ApiProperty({ description: 'Hình thức làm việc', enum: WorkMode })
+  @IsEnum(WorkMode)
+  workMode: WorkMode;
+
+  @ApiPropertyOptional({
+    description: 'Cấp độ kinh nghiệm',
+    enum: ExperienceLevel,
+  })
+  @IsOptional()
+  @IsEnum(ExperienceLevel)
+  experienceLevel?: ExperienceLevel;
+
+  @ApiPropertyOptional({
+    description: 'Số năm kinh nghiệm tối thiểu',
+    example: 2,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  experienceYearsMin?: number;
+
+  @ApiPropertyOptional({ description: 'Số lượng tuyển', default: 1 })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  quantity?: number;
+
+  @ApiPropertyOptional({ description: 'Ngày hết hạn (ISO date)' })
+  @IsOptional()
+  @IsDateString()
+  expiredAt?: string;
+
+  @ApiPropertyOptional({ description: 'Tin HOT (nổi bật)', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isHot?: boolean;
+
+  @ApiPropertyOptional({ description: 'Tin tuyển gấp', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isUrgent?: boolean;
 }
-

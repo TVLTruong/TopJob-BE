@@ -54,7 +54,7 @@ export class JobsController {
    * PUBLIC API - Xem chi tiết việc làm
    * UC-GUEST-02: Xem chi tiết việc làm
    * GET /api/jobs/:identifier
-   * 
+   *
    * Features:
    * - Không yêu cầu authentication (Guest có thể truy cập)
    * - Hỗ trợ tìm kiếm bằng ID (số) hoặc Slug (string)
@@ -62,10 +62,10 @@ export class JobsController {
    * - Load đầy đủ employer profile, location, category
    * - Tự động tăng view count
    * - Xử lý rõ ràng các trường hợp: EXPIRED, CLOSED, REMOVED, NOT_FOUND
-   * 
+   *
    * @param identifier - Job ID (vd: "123") hoặc Job Slug (vd: "senior-fullstack-developer")
    * @returns Job detail với đầy đủ thông tin
-   * 
+   *
    * Error Responses:
    * - 404: Job không tồn tại
    * - 404: Job đã hết hạn
@@ -76,7 +76,8 @@ export class JobsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Xem chi tiết việc làm (Public)',
-    description: 'API cho Guest/Candidate xem chi tiết việc làm. Hỗ trợ tìm bằng ID hoặc Slug. Chỉ trả về jobs ACTIVE.',
+    description:
+      'API cho Guest/Candidate xem chi tiết việc làm. Hỗ trợ tìm bằng ID hoặc Slug. Chỉ trả về jobs ACTIVE.',
   })
   @ApiResponse({
     status: 200,
@@ -89,8 +90,8 @@ export class JobsController {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 404 },
-        message: { 
-          type: 'string', 
+        message: {
+          type: 'string',
           examples: [
             'Không tìm thấy việc làm với slug: senior-fullstack-developer',
             'Tin tuyển dụng này đã hết hạn. Vui lòng tìm việc làm khác.',

@@ -3,6 +3,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -58,6 +59,27 @@ export class EmployerJobsController {
     @Query() pagination: PaginationDto,
   ): Promise<PaginationResponseDto<Job>> {
     return this.jobsService.getJobsForEmployer(user.id, pagination);
+  }
+
+  /**
+   * GET /employer/jobs/:jobId
+   * Lấy chi tiết tin tuyển dụng (chỉ của employer hiện tại)
+   */
+  @Get(':jobId')
+  @ApiOperation({
+    summary: 'Chi tiết tin tuyển dụng của tôi',
+    description: 'Lấy đầy đủ thông tin job với employer ownership check',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Chi tiết tin tuyển dụng',
+    type: Job,
+  })
+  async getJobDetail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('jobId') jobId: string,
+  ): Promise<Job> {
+    return this.jobsService.getJobDetailForEmployer(user.id, jobId);
   }
 
   /**
@@ -127,6 +149,48 @@ export class EmployerJobsController {
   }
 
   /**
+   * PATCH /employer/jobs/:jobId/unhide
+   * Hủy ẩn job (chuyển từ HIDDEN về ACTIVE)
+   */
+  @Patch(':jobId/unhide')
+  @ApiOperation({
+    summary: 'Hủy ẩn tin tuyển dụng',
+    description: 'Chỉ owner, chỉ khi job đang HIDDEN.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Hủy ẩn thành công',
+    type: CreateJobResponseDto,
+  })
+  async unhideJob(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('jobId') jobId: string,
+  ): Promise<CreateJobResponseDto> {
+    return this.jobsService.unhideJobForEmployer(user.id, jobId);
+  }
+
+  /**
+   * PATCH /employer/jobs/:jobId/close
+   * Kết thúc job (chuyển status sang CLOSED)
+   */
+  @Patch(':jobId/close')
+  @ApiOperation({
+    summary: 'Kết thúc tin tuyển dụng',
+    description: 'Chỉ owner, chuyển status sang CLOSED.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Kết thúc thành công',
+    type: CreateJobResponseDto,
+  })
+  async closeJob(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('jobId') jobId: string,
+  ): Promise<CreateJobResponseDto> {
+    return this.jobsService.closeJobForEmployer(user.id, jobId);
+  }
+
+  /**
    * GET /employer/jobs/:jobId/applications
    * Lấy danh sách ứng tuyển của job (ownership enforced)
    */
@@ -151,5 +215,28 @@ export class EmployerJobsController {
       jobId,
       pagination,
     );
+  }
+
+  /**
+   * DELETE /employer/jobs/:jobId
+   * Xóa job (soft delete - chuyển status về REMOVED_BY_ADMIN)
+   */
+  @Delete(':jobId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Xóa tin tuyển dụng',
+    description:
+      'Soft delete - chuyển status về REMOVED_BY_ADMIN. Chỉ owner được xóa.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Xóa thành công',
+    type: CreateJobResponseDto,
+  })
+  async deleteJob(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('jobId') jobId: string,
+  ): Promise<CreateJobResponseDto> {
+    return this.jobsService.deleteJobForEmployer(user.id, jobId);
   }
 }

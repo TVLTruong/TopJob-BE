@@ -1140,11 +1140,12 @@ export class EmployersService {
         id: application.job.id,
         title: application.job.title,
         slug: application.job.slug,
-        jobType: application.job.jobType,
+        employmentType: application.job.employmentType,
+        workMode: application.job.workMode,
         salaryMin: application.job.salaryMin,
         salaryMax: application.job.salaryMax,
         isNegotiable: application.job.isNegotiable,
-        deadline: application.job.deadline,
+        expiredAt: application.job.expiredAt,
       },
       cv: application.cv
         ? {

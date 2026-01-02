@@ -1,7 +1,12 @@
 // src/modules/admin-job-approval/dto/job-detail.dto.ts
 
 import { Expose, Type } from 'class-transformer';
-import { JobStatus, JobType, ExperienceLevel } from '../../../common/enums';
+import {
+  JobStatus,
+  JobType,
+  ExperienceLevel,
+  WorkMode,
+} from '../../../common/enums';
 
 /**
  * Employer info for job detail
@@ -68,13 +73,16 @@ export class JobDetailDto {
   description: string | null;
 
   @Expose()
-  requirements: string | null;
+  requirements: string[] | null;
 
   @Expose()
-  responsibilities: string | null;
+  responsibilities: string[] | null;
 
   @Expose()
-  niceToHave: string | null;
+  niceToHave: string[] | null;
+
+  @Expose()
+  benefits: string[] | null;
 
   @Expose()
   salaryMin: number | null;
@@ -86,34 +94,46 @@ export class JobDetailDto {
   isNegotiable: boolean;
 
   @Expose()
-  jobType: JobType;
+  isSalaryVisible: boolean;
+
+  @Expose()
+  salaryCurrency: string;
+
+  @Expose()
+  employmentType: JobType;
+
+  @Expose()
+  workMode: WorkMode;
 
   @Expose()
   experienceLevel: ExperienceLevel | null;
 
   @Expose()
-  positionsAvailable: number;
+  experienceYearsMin: number | null;
 
   @Expose()
-  requiredSkills: string[] | null;
+  quantity: number;
 
   @Expose()
   status: JobStatus;
 
   @Expose()
-  deadline: Date | null;
+  expiredAt: Date | null;
 
   @Expose()
   publishedAt: Date | null;
 
   @Expose()
-  applicationCount: number;
+  applyCount: number;
 
   @Expose()
   viewCount: number;
 
   @Expose()
-  isFeatured: boolean;
+  saveCount: number;
+
+  @Expose()
+  isHot: boolean;
 
   @Expose()
   isUrgent: boolean;

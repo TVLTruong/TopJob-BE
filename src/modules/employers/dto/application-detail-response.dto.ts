@@ -7,6 +7,7 @@ import {
   Gender,
   ExperienceLevel,
   JobType,
+  WorkMode,
 } from '../../../common/enums';
 
 /**
@@ -100,15 +101,19 @@ export class ApplicationJobDto {
 
   @ApiPropertyOptional({ description: 'Loại hình công việc', enum: JobType })
   @Expose()
-  jobType: JobType;
+  employmentType: JobType;
+
+  @ApiPropertyOptional({ description: 'Chế độ làm việc', enum: WorkMode })
+  @Expose()
+  workMode: WorkMode;
 
   @ApiPropertyOptional({ description: 'Lương tối thiểu' })
   @Expose()
-  salaryMin: number;
+  salaryMin: number | null;
 
   @ApiPropertyOptional({ description: 'Lương tối đa' })
   @Expose()
-  salaryMax: number;
+  salaryMax: number | null;
 
   @ApiProperty({ description: 'Có thể thương lượng' })
   @Expose()
@@ -116,7 +121,7 @@ export class ApplicationJobDto {
 
   @ApiPropertyOptional({ description: 'Hạn nộp' })
   @Expose()
-  deadline: Date;
+  expiredAt: Date | null;
 }
 
 /**

@@ -25,7 +25,23 @@ export enum JobType {
   PART_TIME = 'part_time', // Bán thời gian
   FREELANCE = 'freelance', // Tự do
   INTERNSHIP = 'internship', // Thực tập
-  REMOTE = 'remote', // Làm từ xa
+  CONTRACT = 'contract', // Hợp đồng
+}
+
+export enum WorkMode {
+  ONSITE = 'onsite',
+  REMOTE = 'remote',
+  HYBRID = 'hybrid',
+}
+
+export enum ExperienceLevel {
+  INTERN = 'intern',
+  FRESHER = 'fresher',
+  JUNIOR = 'junior',
+  MIDDLE = 'middle',
+  SENIOR = 'senior',
+  LEAD = 'lead',
+  MANAGER = 'manager',
 }
 
 /**
@@ -50,5 +66,21 @@ export const JobTypeLabel: Record<JobType, string> = {
   [JobType.PART_TIME]: 'Bán thời gian',
   [JobType.FREELANCE]: 'Freelance',
   [JobType.INTERNSHIP]: 'Thực tập',
-  [JobType.REMOTE]: 'Làm từ xa',
+  [JobType.CONTRACT]: 'Hợp đồng',
+};
+
+export const WorkModeLabel: Record<WorkMode, string> = {
+  [WorkMode.ONSITE]: 'Làm việc tại văn phòng',
+  [WorkMode.REMOTE]: 'Làm việc từ xa',
+  [WorkMode.HYBRID]: 'Làm việc kết hợp',
+};
+
+export const ExperienceLevelLabel: Record<ExperienceLevel, string> = {
+  [ExperienceLevel.INTERN]: 'Thực tập',
+  [ExperienceLevel.FRESHER]: 'Mới tốt nghiệp',
+  [ExperienceLevel.JUNIOR]: 'Cấp thấp',
+  [ExperienceLevel.MIDDLE]: 'Cấp trung',
+  [ExperienceLevel.SENIOR]: 'Cấp cao',
+  [ExperienceLevel.LEAD]: 'Trưởng nhóm',
+  [ExperienceLevel.MANAGER]: 'Quản lý',
 };
