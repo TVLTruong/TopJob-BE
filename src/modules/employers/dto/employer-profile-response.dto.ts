@@ -133,23 +133,15 @@ export class EmployerProfileResponseDto {
 
   @ApiPropertyOptional({
     description: 'Danh mục nhà tuyển dụng',
-    type: [String],
+    type: [Object],
   })
   @Expose()
-  employerCategory: string[];
+  categories: Array<{ id: string; name: string; slug: string }>;
 
   // Benefits
   @ApiPropertyOptional({ description: 'Danh sách phúc lợi', type: [String] })
   @Expose()
   benefits: string[];
-
-  // Technologies
-  @ApiPropertyOptional({
-    description: 'Danh sách công nghệ sử dụng',
-    type: [String],
-  })
-  @Expose()
-  technologies: string[];
 
   // Locations
   @ApiPropertyOptional({

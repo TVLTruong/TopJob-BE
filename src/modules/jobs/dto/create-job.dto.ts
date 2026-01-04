@@ -19,10 +19,23 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExperienceLevel, JobType, WorkMode } from '../../../common/enums';
 
 export class CreateJobDto {
-  @ApiProperty({ description: 'ID danh mục', example: '1' })
+  @ApiProperty({
+    description: 'Danh sách ID các danh mục (tối thiểu 1)',
+    example: ['1', '2'],
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  categoryIds: string[];
+
+  @ApiPropertyOptional({
+    description: 'ID danh mục chính (nếu không chỉ định, sẽ lấy cái đầu tiên)',
+    example: '1',
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  categoryId: string;
+  primaryCategoryId?: string;
 
   @ApiProperty({ description: 'ID địa điểm (thuộc employer)', example: '10' })
   @IsString()

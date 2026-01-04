@@ -2,9 +2,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, TreeRepository } from 'typeorm';
-import { JobCategory, EmployerCategory } from '../../database/entities';
+import { JobCategory, EmployerCategory, Technology } from '../../database/entities';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { EmployerCategoryDto } from './dto/employer-category.dto';
+import { TechnologyResponseDto } from './dto/technology-response.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -46,6 +47,31 @@ export class EmployerCategoriesService {
           id: cat.id,
           name: cat.name,
           slug: cat.slug,
+        }),
+    );
+  }
+}
+
+@Injectable()
+export class TechnologiesService {
+  constructor(
+    @InjectRepository(Technology)
+    private readonly repository: Repository<Technology>,
+  ) {}
+
+  async getAllTechnologies(): Promise<TechnologyResponseDto[]> {
+    const technologies = await this.repository.find({
+      where: { isActive: true },
+      order: { name: 'ASC' },
+    });
+
+    return technologies.map(
+      (tech) =>
+        new TechnologyResponseDto({
+          id: tech.id,
+          name: tech.name,
+          slug: tech.slug,
+          isActive: tech.isActive,
         }),
     );
   }

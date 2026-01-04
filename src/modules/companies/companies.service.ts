@@ -104,7 +104,11 @@ export class CompaniesService {
     // 1. Tìm employer (không filter status để xử lý message cụ thể)
     const employer = await this.employerRepo.findOne({
       where: { id },
-      relations: ['locations'],
+      relations: [
+        'locations',
+        'employerCategories',
+        'employerCategories.category',
+      ],
     });
 
     // 2. Employer không tồn tại
@@ -143,6 +147,15 @@ export class CompaniesService {
       facebookUrl: employer.facebookUrl,
       xUrl: employer.xUrl,
       benefits: employer.benefits,
+      categories:
+        employer.employerCategories
+          ?.map((ec) => ec.category)
+          .filter(Boolean)
+          .map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+          })) ?? [],
       locations: employer.locations,
       createdAt: employer.createdAt,
       updatedAt: employer.updatedAt,

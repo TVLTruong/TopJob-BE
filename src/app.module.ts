@@ -30,12 +30,12 @@ import { AdminEmployerManagementModule } from './modules/admin-employer-manageme
 import { AdminCandidateManagementModule } from './modules/admin-candidate-management/admin-candidate-management.module';
 import { AdminJobManagementModule } from './modules/admin-job-management/admin-job-management.module';
 import { AdminCategoryModule } from './modules/admin-category/admin-category.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
+// import { NotificationsModule } from './modules/notifications/notifications.module';
 import { StorageModule } from './modules/storage/storage.module';
-import { QueueModule } from './modules/queue/queue.module';
+// import { QueueModule } from './modules/queue/queue.module';
 import { CacheModule } from './modules/cache/cache.module';
-import { LoggerModule } from './modules/logger/logger.module';
-import { HealthModule } from './modules/health/health.module';
+// import { LoggerModule } from './modules/logger/logger.module';
+// import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -142,17 +142,17 @@ import { HealthModule } from './modules/health/health.module';
 
     AdminCategoryModule,
 
-    NotificationsModule,
+    // NotificationsModule,
 
     StorageModule,
 
-    QueueModule,
+    // QueueModule,
 
     CacheModule,
 
-    LoggerModule,
+    // LoggerModule,
 
-    HealthModule,
+    // HealthModule,
   ],
 })
 export class AppModule {}

@@ -319,11 +319,7 @@ export class AdminEmployerApprovalService {
             }
 
             // Parse JSON fields
-            if (
-              fieldName === 'employerCategory' ||
-              fieldName === 'technologies' ||
-              fieldName === 'benefits'
-            ) {
+            if (fieldName === 'employerCategory' || fieldName === 'benefits') {
               try {
                 // employer[fieldName] = JSON.parse(newValue);
                 const parsedValue = JSON.parse(newValue) as string[];

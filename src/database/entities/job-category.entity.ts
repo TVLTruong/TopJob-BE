@@ -12,7 +12,7 @@ import {
   TreeChildren,
   Index,
 } from 'typeorm';
-import { Job } from './job.entity';
+import { JobJobCategory } from './job-job-category.entity';
 
 /**
  * Job Category Entity
@@ -53,8 +53,8 @@ export class JobCategory {
   children: JobCategory[];
 
   // Regular Relations
-  @OneToMany(() => Job, (job) => job.category)
-  jobs: Job[];
+  @OneToMany(() => JobJobCategory, (jobCategory) => jobCategory.category)
+  jobJobCategories: JobJobCategory[];
 
   // Virtual methods
   isParentCategory(): boolean {

@@ -11,6 +11,7 @@ import { Job } from '../../database/entities/job.entity'; // 👈 Nối dây (L�
 import { Employer } from '../../database/entities/employer.entity';
 import { EmployerLocation } from '../../database/entities/employer-location.entity';
 import { Application } from '../../database/entities/application.entity';
+import { JobJobCategory } from '../../database/entities/job-job-category.entity';
 import { JobStatus, UserStatus } from '../../common/enums'; // 👈 Nối dây (Tool)
 import { SearchJobsDto } from './dto/search-jobs.dto';
 import {
@@ -35,6 +36,8 @@ export class JobsService {
     private readonly locationRepo: Repository<EmployerLocation>,
     @InjectRepository(Application)
     private readonly applicationRepo: Repository<Application>,
+    @InjectRepository(JobJobCategory)
+    private readonly jobJobCategoryRepo: Repository<JobJobCategory>,
     // (Bạn có thể inject 'job.repository.ts' (custom) nếu cần)
   ) {}
 
@@ -58,7 +61,8 @@ export class JobsService {
       .createQueryBuilder('job')
       .leftJoinAndSelect('job.employer', 'employer')
       .leftJoinAndSelect('job.location', 'location')
-      .leftJoinAndSelect('job.category', 'category');
+      .leftJoinAndSelect('job.jobCategories', 'jobCategory')
+      .leftJoinAndSelect('jobCategory.category', 'category');
 
     // 2. Filter cơ bản: Chỉ lấy ACTIVE jobs và chưa hết hạn
     queryBuilder
@@ -196,7 +200,13 @@ export class JobsService {
     // 2. Tìm job theo ID hoặc Slug (không filter status để xử lý message cụ thể)
     const job = await this.jobRepo.findOne({
       where: isNumericId ? { id: identifier } : { slug: identifier },
-      relations: ['employer', 'employer.user', 'location', 'category'],
+      relations: [
+        'employer',
+        'employer.user',
+        'location',
+        'jobCategories',
+        'jobCategories.category',
+      ],
     });
 
     // 3. Job không tồn tại
@@ -299,9 +309,19 @@ export class JobsService {
 
     const slug = this.generateSlug(dto.title);
 
+    // Validate categoryIds
+    if (!dto.categoryIds || dto.categoryIds.length === 0) {
+      throw new BadRequestException('Phải có ít nhất 1 danh mục');
+    }
+
+    // Determine primary category
+    const primaryCategoryId =
+      dto.primaryCategoryId && dto.categoryIds.includes(dto.primaryCategoryId)
+        ? dto.primaryCategoryId
+        : dto.categoryIds[0];
+
     const jobData: DeepPartial<Job> = {
       employerId: employer.id,
-      categoryId: dto.categoryId,
       locationId: dto.locationId,
       title: dto.title,
       slug,
@@ -328,8 +348,19 @@ export class JobsService {
     };
 
     const job = this.jobRepo.create(jobData);
-
     const saved = await this.jobRepo.save(job);
+
+    // Create JobJobCategory records
+    const jobCategories = dto.categoryIds.map((categoryId) => {
+      return this.jobJobCategoryRepo.create({
+        jobId: saved.id,
+        categoryId,
+        isPrimary: categoryId === primaryCategoryId,
+      });
+    });
+
+    await this.jobJobCategoryRepo.save(jobCategories);
+
     return { jobId: saved.id, status: saved.status };
   }
 
@@ -381,7 +412,12 @@ export class JobsService {
 
     const job = await this.jobRepo.findOne({
       where: { id: jobId, employerId: employer.id },
-      relations: ['employer', 'location', 'category'],
+      relations: [
+        'employer',
+        'location',
+        'jobCategories',
+        'jobCategories.category',
+      ],
     });
 
     if (!job) {
@@ -480,7 +516,48 @@ export class JobsService {
     compareAndSet('isHot', dto.isHot ?? undefined);
     compareAndSet('isUrgent', dto.isUrgent ?? undefined);
     compareAndSet('locationId', dto.locationId ?? undefined);
-    compareAndSet('categoryId', dto.categoryId ?? undefined);
+
+    // Handle categoryIds update
+    if (dto.categoryIds && dto.categoryIds.length > 0) {
+      // Get current categories
+      const currentCategories = await this.jobJobCategoryRepo.find({
+        where: { jobId: job.id },
+      });
+
+      const currentCategoryIds = currentCategories.map((jc) => jc.categoryId);
+      const newCategoryIds = dto.categoryIds;
+
+      // Check if categories changed
+      const sortedCurrent = [...currentCategoryIds].sort();
+      const sortedNew = [...newCategoryIds].sort();
+      const categoriesChanged =
+        JSON.stringify(sortedCurrent) !== JSON.stringify(sortedNew);
+
+      if (categoriesChanged) {
+        requiresReapproval = true;
+
+        // Remove old categories
+        await this.jobJobCategoryRepo.delete({ jobId: job.id });
+
+        // Determine primary category
+        const primaryCategoryId =
+          dto.primaryCategoryId &&
+          newCategoryIds.includes(dto.primaryCategoryId)
+            ? dto.primaryCategoryId
+            : newCategoryIds[0];
+
+        // Add new categories
+        const jobCategories = newCategoryIds.map((categoryId) => {
+          return this.jobJobCategoryRepo.create({
+            jobId: job.id,
+            categoryId,
+            isPrimary: categoryId === primaryCategoryId,
+          });
+        });
+
+        await this.jobJobCategoryRepo.save(jobCategories);
+      }
+    }
 
     if (dto.title && dto.title !== originalTitle) {
       job.slug = this.generateSlug(dto.title);

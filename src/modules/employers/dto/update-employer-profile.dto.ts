@@ -207,30 +207,27 @@ export class UpdateEmployerProfileDto {
   @IsString({ each: true, message: 'Mỗi phúc lợi phải là chuỗi' })
   benefits?: string[];
 
-  // employerCategory
+  // Employer Categories
   @ApiPropertyOptional({
-    description: 'Danh sách danh mục nhà tuyển dụng',
-    example: ['Công nghệ thông tin', 'Tài chính', 'Marketing'],
+    description: 'Danh sách ID danh mục nhà tuyển dụng',
+    example: ['1', '2', '3'],
     type: [String],
   })
   @IsOptional()
   @IsArray({ message: 'Danh mục nhà tuyển dụng phải là mảng' })
   @IsString({
     each: true,
-    message: 'Mỗi danh mục nhà tuyển dụng phải là chuỗi',
+    message: 'Mỗi danh mục nhà tuyển dụng phải là chuỗi ID',
   })
-  employerCategory?: string[];
+  categoryIds?: string[];
 
-  // Technologies
   @ApiPropertyOptional({
-    description: 'Danh sách công nghệ sử dụng',
-    example: ['React', 'Node.js', 'PostgreSQL', 'Docker'],
-    type: [String],
+    description: 'ID danh mục chính (nếu không chỉ định, sẽ lấy cái đầu tiên)',
+    example: '1',
   })
   @IsOptional()
-  @IsArray({ message: 'Công nghệ phải là mảng' })
-  @IsString({ each: true, message: 'Mỗi công nghệ phải là chuỗi' })
-  technologies?: string[];
+  @IsString()
+  primaryCategoryId?: string;
 
   // Locations
   @ApiPropertyOptional({

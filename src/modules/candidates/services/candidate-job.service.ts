@@ -105,7 +105,13 @@ export class CandidateJobService {
     // Get all saved jobs with job details
     const savedJobs = await this.savedJobRepository.find({
       where: { candidateId: candidate.id },
-      relations: ['job', 'job.employer', 'job.category', 'job.location'],
+      relations: [
+        'job',
+        'job.employer',
+        'job.jobCategories',
+        'job.jobCategories.category',
+        'job.location',
+      ],
       order: { savedAt: 'DESC' },
     });
 
@@ -213,7 +219,14 @@ export class CandidateJobService {
     // Get all applications with job and cv details
     const applications = await this.applicationRepository.find({
       where: { candidateId: candidate.id },
-      relations: ['job', 'job.employer', 'job.category', 'job.location', 'cv'],
+      relations: [
+        'job',
+        'job.employer',
+        'job.jobCategories',
+        'job.jobCategories.category',
+        'job.location',
+        'cv',
+      ],
       order: { createdAt: 'DESC' },
     });
 

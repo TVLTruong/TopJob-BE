@@ -47,7 +47,8 @@ export class AdminJobApprovalService {
     const queryBuilder = this.jobRepository
       .createQueryBuilder('job')
       .leftJoinAndSelect('job.employer', 'employer')
-      .leftJoinAndSelect('job.category', 'category')
+      .leftJoinAndSelect('job.jobCategories', 'jobCategory')
+      .leftJoinAndSelect('jobCategory.category', 'category')
       .leftJoinAndSelect('job.location', 'location');
 
     // Only show jobs pending approval
@@ -64,7 +65,9 @@ export class AdminJobApprovalService {
 
     // Filter by category
     if (categoryId) {
-      queryBuilder.andWhere('job.categoryId = :categoryId', { categoryId });
+      queryBuilder.andWhere('jobCategory.categoryId = :categoryId', {
+        categoryId,
+      });
     }
 
     // Filter by employer
@@ -97,7 +100,12 @@ export class AdminJobApprovalService {
   async getJobDetail(jobId: string): Promise<JobDetailDto> {
     const job = await this.jobRepository.findOne({
       where: { id: jobId },
-      relations: ['employer', 'category', 'location'],
+      relations: [
+        'employer',
+        'jobCategories',
+        'jobCategories.category',
+        'location',
+      ],
     });
 
     if (!job) {

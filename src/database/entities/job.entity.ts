@@ -19,17 +19,17 @@ import {
   WorkMode,
 } from '../../common/enums';
 import { Employer } from './employer.entity';
-import { JobCategory } from './job-category.entity';
+// import { JobCategory } from './job-category.entity';
 import { EmployerLocation } from './employer-location.entity';
 import { Application } from './application.entity';
 import { SavedJob } from './saved-job.entity';
+import { JobJobCategory } from './job-job-category.entity';
 
 /**
  * Job Entity
  * Represents a job posting created by an employer
  */
 @Entity('jobs')
-@Index(['slug'], { unique: true })
 @Index(['status'])
 @Index(['expiredAt'])
 @Index(['employerId'])
@@ -40,7 +40,6 @@ export class Job {
 
   // employer
   @Column({ type: 'bigint', name: 'employer_id' })
-  @Index()
   employerId: string;
 
   @ManyToOne(() => Employer, (employer) => employer.jobs, {
@@ -49,18 +48,8 @@ export class Job {
   @JoinColumn({ name: 'employer_id' })
   employer: Employer;
 
-  // category
-  @Column({ type: 'bigint', name: 'category_id' })
-  @Index()
-  categoryId: string;
-
-  @ManyToOne(() => JobCategory, (category) => category.jobs)
-  @JoinColumn({ name: 'category_id' })
-  category: JobCategory;
-
   // location
   @Column({ type: 'bigint', name: 'location_id' })
-  @Index()
   locationId: string;
 
   @ManyToOne(() => EmployerLocation, (location) => location.jobs)
@@ -72,7 +61,6 @@ export class Job {
   title: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  @Index()
   slug: string;
 
   @Column({ type: 'text', nullable: true })
@@ -90,7 +78,7 @@ export class Job {
   @Column('text', { array: true, nullable: true })
   benefits: string[] | null;
 
-  // JOb Attributes
+  // Job Attributes
   @Column({ type: 'enum', enum: JobType })
   employmentType: JobType;
 
@@ -107,22 +95,10 @@ export class Job {
   experienceLevel: ExperienceLevel | null;
 
   // Salary
-  @Column({
-    type: 'decimal',
-    precision: 12,
-    scale: 2,
-    nullable: true,
-    name: 'salary_min',
-  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   salaryMin: number | null;
 
-  @Column({
-    type: 'decimal',
-    precision: 12,
-    scale: 2,
-    nullable: true,
-    name: 'salary_max',
-  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   salaryMax: number | null;
 
   @Column({ type: 'boolean', default: false })
@@ -140,7 +116,6 @@ export class Job {
     enum: JobStatus,
     default: JobStatus.DRAFT,
   })
-  @Index()
   status: JobStatus;
 
   @Column({ type: 'timestamp', nullable: true, name: 'expired_at' })
@@ -182,4 +157,10 @@ export class Job {
 
   @OneToMany(() => SavedJob, (savedJob) => savedJob.job)
   savedJobs: SavedJob[];
+
+  @OneToMany(() => JobJobCategory, (jobCategory) => jobCategory.job)
+  jobCategories: JobJobCategory[];
+
+  @OneToMany('JobTechnology', 'job')
+  jobTechnologies: any[];
 }

@@ -6,8 +6,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
   Index,
 } from 'typeorm';
+import { EmployerEmployerCategory } from './employer-employer-category.entity';
 
 /**
  * Company Category Entity
@@ -38,6 +40,10 @@ export class EmployerCategory {
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updatedAt: Date;
+
+  // Relations
+  @OneToMany(() => EmployerEmployerCategory, (ec) => ec.category)
+  employerEmployerCategories: EmployerEmployerCategory[];
 
   // Virtual methods
   getIsActive(): boolean {

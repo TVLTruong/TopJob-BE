@@ -64,7 +64,8 @@ export class AdminJobManagementService {
       const queryBuilder = this.jobRepository
         .createQueryBuilder('job')
         .leftJoinAndSelect('job.employer', 'employer')
-        .leftJoinAndSelect('job.category', 'category')
+        .leftJoinAndSelect('job.jobCategories', 'jobCategory')
+        .leftJoinAndSelect('jobCategory.category', 'category')
         .leftJoinAndSelect('job.location', 'location');
 
       // Search filter: title, company name, location
@@ -96,9 +97,15 @@ export class AdminJobManagementService {
           excludeExtraneousValues: true,
         });
 
-        const categoryInfo = plainToInstance(JobCategoryInfoDto, job.category, {
-          excludeExtraneousValues: true,
-        });
+        const categories =
+          job.jobCategories
+            ?.map((jc) => jc.category)
+            .filter(Boolean)
+            .map((cat) =>
+              plainToInstance(JobCategoryInfoDto, cat, {
+                excludeExtraneousValues: true,
+              }),
+            ) ?? [];
 
         const locationInfo = plainToInstance(JobLocationInfoDto, job.location, {
           excludeExtraneousValues: true,
@@ -127,7 +134,7 @@ export class AdminJobManagementService {
           createdAt: job.createdAt,
           updatedAt: job.updatedAt,
           employer: employerInfo,
-          category: categoryInfo,
+          categories,
           location: locationInfo,
         };
       });
@@ -157,7 +164,12 @@ export class AdminJobManagementService {
   async getJobDetail(jobId: string): Promise<JobDetailDto> {
     const job = await this.jobRepository.findOne({
       where: { id: jobId },
-      relations: ['employer', 'category', 'location'],
+      relations: [
+        'employer',
+        'jobCategories',
+        'jobCategories.category',
+        'location',
+      ],
     });
 
     if (!job) {
@@ -169,10 +181,16 @@ export class AdminJobManagementService {
       excludeExtraneousValues: true,
     });
 
-    // Transform category info
-    const categoryInfo = plainToInstance(JobCategoryInfoDto, job.category, {
-      excludeExtraneousValues: true,
-    });
+    // Transform categories info
+    const categories =
+      job.jobCategories
+        ?.map((jc) => jc.category)
+        .filter(Boolean)
+        .map((cat) =>
+          plainToInstance(JobCategoryInfoDto, cat, {
+            excludeExtraneousValues: true,
+          }),
+        ) ?? [];
 
     // Transform location info
     const locationInfo = plainToInstance(JobLocationInfoDto, job.location, {
@@ -183,7 +201,6 @@ export class AdminJobManagementService {
     return {
       id: job.id,
       employerId: job.employerId,
-      categoryId: job.categoryId,
       locationId: job.locationId,
       title: job.title,
       slug: job.slug,
@@ -213,7 +230,7 @@ export class AdminJobManagementService {
       createdAt: job.createdAt,
       updatedAt: job.updatedAt,
       employer: employerInfo,
-      category: categoryInfo,
+      categories,
       location: locationInfo,
     };
   }

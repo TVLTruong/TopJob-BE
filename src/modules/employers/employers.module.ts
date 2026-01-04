@@ -14,6 +14,7 @@ import {
   User,
   Application,
   Job,
+  EmployerEmployerCategory,
 } from '../../database/entities';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
 import { LogoutUseCase } from '../auth/usecases';
@@ -33,6 +34,7 @@ import { AuthModule } from '../auth/auth.module';
       User,
       Application,
       Job,
+      EmployerEmployerCategory,
       AuthModule,
     ]),
     JwtModule.registerAsync({

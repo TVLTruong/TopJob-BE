@@ -20,6 +20,7 @@ import { User } from './user.entity';
 import { EmployerLocation } from './employer-location.entity';
 import { EmployerPendingEdit } from './employer-pending-edit.entity';
 import { Job } from './job.entity';
+import { EmployerEmployerCategory } from './employer-employer-category.entity';
 
 /**
  * Employer Entity
@@ -130,21 +131,6 @@ export class Employer {
   })
   benefits: string[];
 
-  @Column({
-    type: 'text',
-    array: true,
-    nullable: true,
-  })
-  technologies: string[];
-
-  @Column({
-    type: 'text',
-    array: true,
-    nullable: true,
-    name: 'employer_category',
-  })
-  employerCategory: string[];
-
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 
@@ -166,6 +152,9 @@ export class Employer {
 
   @OneToMany(() => Job, (job) => job.employer)
   jobs: Job[];
+
+  @OneToMany(() => EmployerEmployerCategory, (ec) => ec.employer)
+  employerCategories: EmployerEmployerCategory[];
 
   // Virtual methods
   isActive(): boolean {
@@ -198,9 +187,9 @@ export class Employer {
       this.companyName &&
       this.description &&
       this.foundedDate &&
-      this.employerCategory &&
+      this.employerCategories &&
+      this.employerCategories.length > 0 &&
       this.benefits &&
-      this.technologies &&
       (this.xUrl ||
         this.facebookUrl ||
         this.linkedlnUrl ||

@@ -7,6 +7,9 @@ import {
   Employer,
   EmployerLocation,
   Application,
+  JobJobCategory,
+  JobTechnology,
+  Technology,
 } from '../../database/entities';
 import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
@@ -17,7 +20,15 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [
     DatabaseModule, // 👈 (Nối "Bảng mạch")
-    TypeOrmModule.forFeature([Job, Employer, EmployerLocation, Application]), // 👈 "Đăng ký" Entity
+    TypeOrmModule.forFeature([
+      Job,
+      Employer,
+      EmployerLocation,
+      Application,
+      JobJobCategory,
+      JobTechnology,
+      Technology,
+    ]), // 👈 "Đăng ký" Entity
     AuthModule, // 👈 THÊM AuthModule
   ],
   controllers: [JobsController, EmployerJobsController],

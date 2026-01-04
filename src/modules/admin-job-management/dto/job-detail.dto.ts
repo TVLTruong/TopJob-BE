@@ -71,9 +71,6 @@ export class JobDetailDto {
   employerId: string;
 
   @Expose()
-  categoryId: string;
-
-  @Expose()
   locationId: string;
 
   @Expose()
@@ -163,7 +160,7 @@ export class JobDetailDto {
 
   @Expose()
   @Type(() => JobCategoryInfoDto)
-  category: JobCategoryInfoDto;
+  categories: JobCategoryInfoDto[];
 
   @Expose()
   @Type(() => JobLocationInfoDto)

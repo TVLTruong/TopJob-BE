@@ -14,6 +14,7 @@ import {
   User,
   Application,
   Job,
+  EmployerEmployerCategory,
   // Candidate,
   // CandidateCv,
 } from '../../database/entities';
@@ -58,6 +59,8 @@ export class EmployersService {
     private readonly applicationRepository: Repository<Application>,
     @InjectRepository(Job)
     private readonly jobRepository: Repository<Job>,
+    @InjectRepository(EmployerEmployerCategory)
+    private readonly employerCategoryRepo: Repository<EmployerEmployerCategory>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -69,7 +72,12 @@ export class EmployersService {
   ): Promise<EmployerProfileResponseDto> {
     const employer = await this.employerRepository.findOne({
       where: { userId },
-      relations: ['user', 'locations'],
+      relations: [
+        'user',
+        'locations',
+        'employerCategories',
+        'employerCategories.category',
+      ],
     });
 
     if (!employer) {
@@ -85,7 +93,12 @@ export class EmployersService {
   async getProfileById(id: string): Promise<EmployerProfileResponseDto> {
     const employer = await this.employerRepository.findOne({
       where: { id },
-      relations: ['user', 'locations'],
+      relations: [
+        'user',
+        'locations',
+        'employerCategories',
+        'employerCategories.category',
+      ],
     });
 
     if (!employer) {
@@ -229,37 +242,13 @@ export class EmployersService {
         }
       }
 
-      // Check array fields (employerCategory, benefits, technologies)
-      if (dto.employerCategory !== undefined) {
-        const oldValue = JSON.stringify(employer.employerCategory || []);
-        const newValue = JSON.stringify(dto.employerCategory);
-        if (oldValue !== newValue) {
-          pendingEdits.push({
-            fieldName: 'employerCategory',
-            oldValue,
-            newValue,
-          });
-        }
-      }
-
+      // Check array fields (benefits)
       if (dto.benefits !== undefined) {
         const oldValue = JSON.stringify(employer.benefits || []);
         const newValue = JSON.stringify(dto.benefits);
         if (oldValue !== newValue) {
           pendingEdits.push({
             fieldName: 'benefits',
-            oldValue,
-            newValue,
-          });
-        }
-      }
-
-      if (dto.technologies !== undefined) {
-        const oldValue = JSON.stringify(employer.technologies || []);
-        const newValue = JSON.stringify(dto.technologies);
-        if (oldValue !== newValue) {
-          pendingEdits.push({
-            fieldName: 'technologies',
             oldValue,
             newValue,
           });
@@ -361,15 +350,37 @@ export class EmployersService {
         website: dto.website ?? employer.website,
         logoUrl: dto.logoUrl ?? employer.logoUrl,
         foundedDate: dto.foundedDate ?? employer.foundedDate,
-        employerCategory: dto.employerCategory ?? employer.employerCategory,
         contactEmail: dto.contactEmail ?? employer.contactEmail,
         contactPhone: dto.contactPhone ?? employer.contactPhone,
         linkedlnUrl: dto.linkedlnUrl ?? employer.linkedlnUrl,
         facebookUrl: dto.facebookUrl ?? employer.facebookUrl,
         xUrl: dto.xUrl ?? employer.xUrl,
         benefits: dto.benefits ?? employer.benefits,
-        technologies: dto.technologies ?? employer.technologies,
       });
+
+      // Handle categoryIds
+      if (dto.categoryIds && dto.categoryIds.length > 0) {
+        // Delete old categories
+        await this.employerCategoryRepo.delete({ employerId: employer.id });
+
+        // Determine primary category
+        const primaryCategoryId =
+          dto.primaryCategoryId &&
+          dto.categoryIds.includes(dto.primaryCategoryId)
+            ? dto.primaryCategoryId
+            : dto.categoryIds[0];
+
+        // Add new categories
+        const employerCategories = dto.categoryIds.map((categoryId) => {
+          return this.employerCategoryRepo.create({
+            employerId: employer.id,
+            categoryId,
+            isPrimary: categoryId === primaryCategoryId,
+          });
+        });
+
+        await this.employerCategoryRepo.save(employerCategories);
+      }
 
       // AUTO-APPROVE LOGIC
       if (!employer.isApproved) {
@@ -594,7 +605,6 @@ export class EmployersService {
         logoUrl: dto.logoUrl ?? employer.logoUrl,
         // coverImageUrl: dto.coverImageUrl ?? employer.coverImageUrl,
         foundedDate: dto.foundedDate ?? employer.foundedDate,
-        employerCategory: dto.employerCategory ?? employer.employerCategory,
         // companySize: dto.companySize ?? employer.companySize,
         contactEmail: dto.contactEmail ?? employer.contactEmail,
         contactPhone: dto.contactPhone ?? employer.contactPhone,
@@ -602,8 +612,38 @@ export class EmployersService {
         facebookUrl: dto.facebookUrl ?? employer.facebookUrl,
         xUrl: dto.xUrl ?? employer.xUrl,
         benefits: dto.benefits ?? employer.benefits,
-        technologies: dto.technologies ?? employer.technologies,
       });
+
+      await queryRunner.manager.save(employer);
+
+      // Handle categoryIds
+      if (dto.categoryIds && dto.categoryIds.length > 0) {
+        // Delete old categories
+        await queryRunner.manager.delete(EmployerEmployerCategory, {
+          employerId: employer.id,
+        });
+
+        // Determine primary category
+        const primaryCategoryId =
+          dto.primaryCategoryId &&
+          dto.categoryIds.includes(dto.primaryCategoryId)
+            ? dto.primaryCategoryId
+            : dto.categoryIds[0];
+
+        // Add new categories
+        const employerCategories = dto.categoryIds.map((categoryId) => {
+          return queryRunner.manager.create(EmployerEmployerCategory, {
+            employerId: employer.id,
+            categoryId,
+            isPrimary: categoryId === primaryCategoryId,
+          });
+        });
+
+        await queryRunner.manager.save(
+          EmployerEmployerCategory,
+          employerCategories,
+        );
+      }
 
       await queryRunner.manager.save(employer);
 
@@ -859,9 +899,9 @@ export class EmployersService {
       employer.companyName &&
       employer.description &&
       employer.foundedDate &&
-      employer.employerCategory &&
+      employer.employerCategories &&
+      employer.employerCategories.length > 0 &&
       employer.benefits &&
-      employer.technologies &&
       (employer.xUrl ||
         employer.facebookUrl ||
         employer.linkedlnUrl ||
@@ -904,7 +944,15 @@ export class EmployersService {
       logoUrl: employer.logoUrl,
       // coverImageUrl: employer.coverImageUrl,
       foundedDate: employer.foundedDate,
-      employerCategory: employer.employerCategory,
+      categories:
+        employer.employerCategories
+          ?.map((ec) => ec.category)
+          .filter(Boolean)
+          .map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+          })) ?? [],
       // companySize: employer.companySize,
       contactEmail: employer.contactEmail,
       contactPhone: employer.contactPhone,
@@ -915,7 +963,6 @@ export class EmployersService {
       status: employer.status,
       profileStatus: employer.profileStatus,
       benefits: employer.benefits,
-      technologies: employer.technologies,
       locations: employer.locations?.map((loc) =>
         this.mapToLocationResponse(loc),
       ),
