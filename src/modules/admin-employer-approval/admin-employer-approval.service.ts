@@ -175,7 +175,13 @@ export class AdminEmployerApprovalService {
   async getEmployerDetail(employerId: string): Promise<EmployerDetailDto> {
     const employer = await this.employerRepository.findOne({
       where: { id: employerId },
-      relations: ['user', 'pendingEdits', 'locations'],
+      relations: [
+        'user',
+        'pendingEdits',
+        'locations',
+        'employerCategories',
+        'employerCategories.category',
+      ],
     });
 
     if (!employer) {
@@ -200,9 +206,21 @@ export class AdminEmployerApprovalService {
       user: plainToInstance(EmployerUserDto, employer.user, {
         excludeExtraneousValues: true,
       }),
-      employer: plainToInstance(EmployerProfileDto, employer, {
-        excludeExtraneousValues: true,
-      }),
+      employer: plainToInstance(
+        EmployerProfileDto,
+        {
+          ...employer,
+          employerCategories: employer.employerCategories?.map((ec) => ({
+            id: ec.category.id,
+            name: ec.category.name,
+            slug: ec.category.slug,
+            isPrimary: ec.isPrimary,
+          })),
+        },
+        {
+          excludeExtraneousValues: true,
+        },
+      ),
       pendingEdits: pendingEditsDto?.length ? pendingEditsDto : [],
       hasPendingEdits: employer.hasPendingEdits(),
     };

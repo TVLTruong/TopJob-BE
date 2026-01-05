@@ -55,6 +55,23 @@ export class EmployerLocationDto {
 }
 
 /**
+ * Category information for employer
+ */
+export class EmployerCategoryDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  slug: string;
+
+  @Expose()
+  isPrimary: boolean;
+}
+
+/**
  * Pending edit field comparison
  */
 export class PendingEditFieldDto {
@@ -132,6 +149,10 @@ export class EmployerProfileDto {
   @Expose()
   @Type(() => EmployerLocationDto)
   locations: EmployerLocationDto[] | null;
+
+  @Expose()
+  @Type(() => EmployerCategoryDto)
+  employerCategories: EmployerCategoryDto[] | null;
 
   @Expose()
   status: EmployerStatus;

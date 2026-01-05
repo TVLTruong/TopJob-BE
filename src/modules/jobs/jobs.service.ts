@@ -12,6 +12,7 @@ import { Employer } from '../../database/entities/employer.entity';
 import { EmployerLocation } from '../../database/entities/employer-location.entity';
 import { Application } from '../../database/entities/application.entity';
 import { JobJobCategory } from '../../database/entities/job-job-category.entity';
+import { JobTechnology } from '../../database/entities/job-technology.entity';
 import { JobStatus, UserStatus } from '../../common/enums'; // 👈 Nối dây (Tool)
 import { SearchJobsDto } from './dto/search-jobs.dto';
 import {
@@ -38,6 +39,8 @@ export class JobsService {
     private readonly applicationRepo: Repository<Application>,
     @InjectRepository(JobJobCategory)
     private readonly jobJobCategoryRepo: Repository<JobJobCategory>,
+    @InjectRepository(JobTechnology)
+    private readonly jobTechnologyRepo: Repository<JobTechnology>,
     // (Bạn có thể inject 'job.repository.ts' (custom) nếu cần)
   ) {}
 
@@ -206,6 +209,8 @@ export class JobsService {
         'location',
         'jobCategories',
         'jobCategories.category',
+        'jobTechnologies',
+        'jobTechnologies.technology',
       ],
     });
 
@@ -361,6 +366,25 @@ export class JobsService {
 
     await this.jobJobCategoryRepo.save(jobCategories);
 
+    // Create JobTechnology records (if provided)
+    if (dto.technologyIds && dto.technologyIds.length > 0) {
+      const primaryTechnologyId =
+        dto.primaryTechnologyId &&
+        dto.technologyIds.includes(dto.primaryTechnologyId)
+          ? dto.primaryTechnologyId
+          : dto.technologyIds[0];
+
+      const jobTechnologies = dto.technologyIds.map((technologyId) => {
+        return this.jobTechnologyRepo.create({
+          jobId: saved.id,
+          technologyId,
+          isPrimary: technologyId === primaryTechnologyId,
+        });
+      });
+
+      await this.jobTechnologyRepo.save(jobTechnologies);
+    }
+
     return { jobId: saved.id, status: saved.status };
   }
 
@@ -417,6 +441,8 @@ export class JobsService {
         'location',
         'jobCategories',
         'jobCategories.category',
+        'jobTechnologies',
+        'jobTechnologies.technology',
       ],
     });
 
@@ -556,6 +582,51 @@ export class JobsService {
         });
 
         await this.jobJobCategoryRepo.save(jobCategories);
+      }
+    }
+
+    // Handle technologyIds update
+    if (dto.technologyIds !== undefined) {
+      // Get current technologies
+      const currentTechnologies = await this.jobTechnologyRepo.find({
+        where: { jobId: job.id },
+      });
+
+      const currentTechnologyIds = currentTechnologies.map(
+        (jt) => jt.technologyId,
+      );
+      const newTechnologyIds = dto.technologyIds || [];
+
+      // Check if technologies changed
+      const sortedCurrent = [...currentTechnologyIds].sort();
+      const sortedNew = [...newTechnologyIds].sort();
+      const technologiesChanged =
+        JSON.stringify(sortedCurrent) !== JSON.stringify(sortedNew);
+
+      if (technologiesChanged) {
+        requiresReapproval = true;
+
+        // Remove old technologies
+        await this.jobTechnologyRepo.delete({ jobId: job.id });
+
+        // Add new technologies (if any)
+        if (newTechnologyIds.length > 0) {
+          const primaryTechnologyId =
+            dto.primaryTechnologyId &&
+            newTechnologyIds.includes(dto.primaryTechnologyId)
+              ? dto.primaryTechnologyId
+              : newTechnologyIds[0];
+
+          const jobTechnologies = newTechnologyIds.map((technologyId) => {
+            return this.jobTechnologyRepo.create({
+              jobId: job.id,
+              technologyId,
+              isPrimary: technologyId === primaryTechnologyId,
+            });
+          });
+
+          await this.jobTechnologyRepo.save(jobTechnologies);
+        }
       }
     }
 

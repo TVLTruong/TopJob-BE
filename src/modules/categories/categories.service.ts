@@ -2,7 +2,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, TreeRepository } from 'typeorm';
-import { JobCategory, EmployerCategory, Technology } from '../../database/entities';
+import {
+  JobCategory,
+  EmployerCategory,
+  Technology,
+} from '../../database/entities';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { EmployerCategoryDto } from './dto/employer-category.dto';
 import { TechnologyResponseDto } from './dto/technology-response.dto';

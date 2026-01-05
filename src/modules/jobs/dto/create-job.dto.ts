@@ -42,6 +42,24 @@ export class CreateJobDto {
   @IsNotEmpty()
   locationId: string;
 
+  @ApiPropertyOptional({
+    description: 'Danh sách ID công nghệ cho tin tuyển dụng',
+    example: ['1', '2', '3'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  technologyIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'ID công nghệ chính (nếu không chỉ định, sẽ lấy cái đầu tiên)',
+    example: '1',
+  })
+  @IsOptional()
+  @IsString()
+  primaryTechnologyId?: string;
+
   @ApiProperty({ description: 'Tiêu đề tin tuyển dụng' })
   @IsString()
   @IsNotEmpty()
