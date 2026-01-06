@@ -470,11 +470,11 @@ export class CandidatesController {
   @ApiOperation({
     summary: 'Lấy thông tin hồ sơ ứng viên theo ID',
     description:
-      'Lấy thông tin công khai của ứng viên. Chỉ dành cho Employer và Admin. Employer sử dụng để xem hồ sơ candidate khi review đơn ứng tuyển.',
+      'Lấy thông tin công khai của ứng viên. Chỉ dành cho Employer và Admin. Employer sử dụng để xem hồ sơ candidate khi review đơn ứng tuyển. ID có thể là userId hoặc candidateId.',
   })
   @ApiParam({
     name: 'id',
-    description: 'ID của ứng viên',
+    description: 'ID của ứng viên (userId hoặc candidateId)',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -488,6 +488,15 @@ export class CandidatesController {
   async getProfileById(
     @Param('id') id: string,
   ): Promise<CandidateProfileResponseDto | Record<string, never>> {
+    // Try to find by candidateId first (more common use case for employers viewing applications)
+    const profileByCandidateId =
+      await this.candidatesService.getProfileByCandidateIdOrEmpty(id);
+
+    if (Object.keys(profileByCandidateId).length > 0) {
+      return profileByCandidateId;
+    }
+
+    // Fallback to userId for backward compatibility
     return this.candidatesService.getProfileByUserIdOrEmpty(id);
   }
 }

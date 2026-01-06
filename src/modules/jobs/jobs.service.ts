@@ -802,6 +802,9 @@ export class JobsService {
 
     const qb = this.applicationRepo
       .createQueryBuilder('app')
+      .leftJoinAndSelect('app.candidate', 'candidate')
+      .leftJoinAndSelect('app.cv', 'cv')
+      .leftJoinAndSelect('app.job', 'job')
       .where('app.jobId = :jobId', { jobId })
       .orderBy('app.appliedAt', 'DESC');
 

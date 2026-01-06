@@ -64,6 +64,43 @@ export class CandidateProfileService {
   }
 
   /**
+   * Get candidate profile by candidate ID
+   * Used by employers when viewing candidate details from applications
+   */
+  async getProfileByCandidateId(
+    candidateId: string,
+  ): Promise<CandidateProfileResponseDto> {
+    const candidate = await this.candidateRepository.findOne({
+      where: { id: candidateId },
+      relations: ['user', 'cvs'],
+    });
+
+    if (!candidate) {
+      throw new NotFoundException('Không tìm thấy hồ sơ ứng viên');
+    }
+
+    return this.mapToProfileResponse(candidate);
+  }
+
+  /**
+   * Get candidate profile by candidate ID or return empty object
+   */
+  async getProfileByCandidateIdOrEmpty(
+    candidateId: string,
+  ): Promise<CandidateProfileResponseDto | Record<string, never>> {
+    const candidate = await this.candidateRepository.findOne({
+      where: { id: candidateId },
+      relations: ['user', 'cvs'],
+    });
+
+    if (!candidate) {
+      return {};
+    }
+
+    return this.mapToProfileResponse(candidate);
+  }
+
+  /**
    * Update candidate profile
    * UC-CAN-01: Hoàn thiện hồ sơ ứng viên
    */

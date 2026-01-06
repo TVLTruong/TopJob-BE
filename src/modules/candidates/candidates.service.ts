@@ -50,6 +50,18 @@ export class CandidatesService {
     return this.profileService.getProfileByUserIdOrEmpty(userId);
   }
 
+  async getProfileByCandidateId(
+    candidateId: string,
+  ): Promise<CandidateProfileResponseDto> {
+    return this.profileService.getProfileByCandidateId(candidateId);
+  }
+
+  async getProfileByCandidateIdOrEmpty(
+    candidateId: string,
+  ): Promise<CandidateProfileResponseDto | Record<string, never>> {
+    return this.profileService.getProfileByCandidateIdOrEmpty(candidateId);
+  }
+
   async updateProfile(
     userId: string,
     dto: UpdateCandidateProfileDto,

@@ -23,7 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { EmployersService } from './employers.service';
 import { JwtAuthGuard, RolesGuard } from '../../common/guards';
-import { CurrentUser, Roles } from '../../common/decorators';
+import { CurrentUser, Roles, Public } from '../../common/decorators';
 import { UserRole } from '../../common/enums';
 // import type { JwtPayload } from '../auth/services/jwt.service';
 import type { AuthenticatedUser } from '../../common/types/express';
@@ -33,7 +33,7 @@ import {
   AddLocationDto,
   EmployerLocationResponseDto,
   ApplicationDetailResponseDto,
-  ActionApplicationParamDto,
+  ApplicationAction,
   UpdateApplicationStatusResponseDto,
   GetApplicationsQueryDto,
   ApplicationListItemDto,
@@ -214,34 +214,6 @@ export class EmployersController {
   }
 
   /**
-   * Get employer profile by ID (public)
-   * GET /employers/:id
-   */
-  @Get(':id')
-  @ApiOperation({
-    summary: 'Lấy thông tin hồ sơ nhà tuyển dụng theo ID',
-    description: 'Lấy thông tin công khai của nhà tuyển dụng',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID của nhà tuyển dụng',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Thành công',
-    type: EmployerProfileResponseDto,
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Không tìm thấy nhà tuyển dụng',
-  })
-  async getProfileById(
-    @Param('id') id: string,
-  ): Promise<EmployerProfileResponseDto> {
-    return this.employersService.getProfileById(id);
-  }
-
-  /**
    * Get all applications for employer's jobs
    * GET /employer/applications
    */
@@ -310,7 +282,10 @@ export class EmployersController {
   @ApiOperation({
     summary: 'Cập nhật trạng thái đơn ứng tuyển',
     description:
-      'Shortlist hoặc reject đơn ứng tuyển. Chỉ cho phép với status NEW hoặc VIEWED.',
+      'Shortlist/reject/hire đơn ứng tuyển.\n' +
+      '- NEW/VIEWED → shortlist/reject\n' +
+      '- SHORTLISTED → hire/reject\n' +
+      'Reject có thể từ bất kỳ trạng thái nào (new/viewed/shortlisted)',
   })
   @ApiParam({
     name: 'id',
@@ -318,8 +293,8 @@ export class EmployersController {
   })
   @ApiParam({
     name: 'action',
-    description: 'Hành động: shortlist hoặc reject',
-    enum: ['shortlist', 'reject'],
+    description: 'Hành động: shortlist, reject hoặc hire',
+    enum: ['shortlist', 'reject', 'hire'],
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -338,12 +313,32 @@ export class EmployersController {
   async updateApplicationStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') applicationId: string,
-    @Param() params: ActionApplicationParamDto,
+    @Param('action') action: ApplicationAction,
   ): Promise<UpdateApplicationStatusResponseDto> {
     return this.employersService.updateApplicationStatus(
       user.id,
       applicationId,
-      params.action,
+      action,
     );
+  }
+
+  // Public employer profile lookup - must come after all specific routes
+  @Get(':id')
+  @Public()
+  @ApiOperation({ summary: 'Get thông tin hồ sơ công khai của nhà tuyển dụng' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của nhà tuyển dụng',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Lấy thông tin hồ sơ thành công',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy nhà tuyển dụng',
+  })
+  async getProfileById(@Param('id') id: string): Promise<any> {
+    return this.employersService.getProfileById(id);
   }
 }

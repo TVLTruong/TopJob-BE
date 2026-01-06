@@ -989,6 +989,8 @@ export class EmployersService {
     userId: string,
     query: GetApplicationsQueryDto,
   ): Promise<PaginationResponseDto<ApplicationListItemDto>> {
+    console.log('getAllApplications - Start', { userId, query });
+
     // Get employer profile
     const employer = await this.employerRepository.findOne({
       where: { userId },
@@ -997,6 +999,8 @@ export class EmployersService {
     if (!employer) {
       throw new NotFoundException('Không tìm thấy hồ sơ nhà tuyển dụng');
     }
+
+    console.log('getAllApplications - Found employer:', employer.id);
 
     // ✅ SECURITY: If jobId filter provided, verify ownership first
     if (query.jobId) {
@@ -1011,32 +1015,17 @@ export class EmployersService {
       }
     }
 
+    console.log('getAllApplications - Building query');
+
     // ✅ Build query with ownership verification at query level
     const qb = this.applicationRepository
       .createQueryBuilder('app')
-      .innerJoin('app.job', 'job')
-      .innerJoin('app.candidate', 'candidate')
-      .innerJoin('candidate.user', 'user')
-      .leftJoin('app.cv', 'cv')
+      .leftJoinAndSelect('app.job', 'job')
+      .leftJoinAndSelect('app.candidate', 'candidate')
+      .leftJoinAndSelect('candidate.user', 'user')
+      .leftJoinAndSelect('app.cv', 'cv')
       // ✅ CRITICAL: Only fetch applications for jobs owned by this employer
-      .where('job.employerId = :employerId', { employerId: employer.id })
-      .select([
-        'app.id',
-        'app.status',
-        'app.appliedAt',
-        'app.statusUpdatedAt',
-        'candidate.id',
-        'candidate.fullName',
-        'candidate.phoneNumber',
-        'candidate.avatarUrl',
-        'user.email',
-        'job.id',
-        'job.title',
-        'job.slug',
-        'cv.id',
-        'cv.fileName',
-        'cv.fileUrl',
-      ]);
+      .where('job.employerId = :employerId', { employerId: employer.id });
 
     // Apply filters
     if (query.jobId) {
@@ -1069,51 +1058,71 @@ export class EmployersService {
     // Default sorting: newest first
     qb.orderBy('app.appliedAt', 'DESC');
 
+    console.log('getAllApplications - Executing query');
+
     // Get paginated results
-    const paginationResult = await createPaginationResponse(
-      qb,
-      query.page,
-      query.limit,
-    );
+    try {
+      const paginationResult = await createPaginationResponse(
+        qb,
+        query.page,
+        query.limit,
+      );
 
-    // Transform Application entities to ApplicationListItemDto
-    const transformedData: ApplicationListItemDto[] = paginationResult.data.map(
-      (app) => ({
-        id: app.id,
-        status: app.status,
-        appliedAt: app.appliedAt,
-        statusUpdatedAt: app.statusUpdatedAt,
-        candidate: {
-          id: app.candidate.id,
-          fullName: app.candidate.fullName,
-          email: app.candidate.user?.email || '',
-          phoneNumber: app.candidate.phoneNumber,
-          avatarUrl: app.candidate.avatarUrl,
-        },
-        job: {
-          id: app.job.id,
-          title: app.job.title,
-          slug: app.job.slug,
-        },
-        cv: app.cv
-          ? {
-              id: app.cv.id,
-              fileName: app.cv.fileName,
-              fileUrl: app.cv.fileUrl,
-            }
-          : null,
-      }),
-    );
+      console.log(
+        'getAllApplications - Query executed, results:',
+        paginationResult.data.length,
+      );
 
-    return {
-      data: transformedData,
-      meta: {
-        total: paginationResult.meta.total,
-        page: paginationResult.meta.page,
-        limit: paginationResult.meta.limit,
-        totalPages: paginationResult.meta.totalPages,
-      },
-    };
+      // Transform Application entities to ApplicationListItemDto
+      const transformedData: ApplicationListItemDto[] =
+        paginationResult.data.map((app) => {
+          console.log('Mapping application:', app.id);
+          return {
+            id: app.id,
+            status: app.status,
+            appliedAt: app.appliedAt,
+            statusUpdatedAt: app.statusUpdatedAt,
+            candidate: {
+              id: app.candidate?.id || '',
+              fullName: app.candidate?.fullName || '',
+              email: app.candidate?.user?.email || '',
+              phoneNumber: app.candidate?.phoneNumber || null,
+              avatarUrl: app.candidate?.avatarUrl || null,
+            },
+            job: {
+              id: app.job?.id || '',
+              title: app.job?.title || '',
+              slug: app.job?.slug || '',
+            },
+            cv: app.cv
+              ? {
+                  id: app.cv.id,
+                  fileName: app.cv.fileName,
+                  fileUrl: app.cv.fileUrl,
+                }
+              : null,
+          };
+        });
+
+      console.log(
+        'getAllApplications - Success, returning',
+        transformedData.length,
+        'items',
+      );
+
+      return {
+        data: transformedData,
+        meta: {
+          total: paginationResult.meta.total,
+          page: paginationResult.meta.page,
+          limit: paginationResult.meta.limit,
+          totalPages: paginationResult.meta.totalPages,
+        },
+      };
+    } catch (error) {
+      console.error('Error in getAllApplications:', error);
+      throw error;
+    }
   }
 
   /**
@@ -1246,21 +1255,46 @@ export class EmployersService {
       );
     }
 
-    // Validate current status - only allow NEW or VIEWED
-    if (
-      application.status !== ApplicationStatus.NEW &&
-      application.status !== ApplicationStatus.VIEWED
-    ) {
-      throw new BadRequestException(
-        `Không thể thực hiện hành động này với đơn ứng tuyển có trạng thái "${application.status}". Chỉ cho phép với trạng thái "new" hoặc "viewed".`,
-      );
+    // Validate current status based on action
+    if (action === ApplicationAction.HIRE) {
+      // HIRE action only allowed from SHORTLISTED
+      if (application.status !== ApplicationStatus.SHORTLISTED) {
+        throw new BadRequestException(
+          `Không thể tuyển dụng ứng viên từ trạng thái "${application.status}". Chỉ cho phép với trạng thái "shortlisted".`,
+        );
+      }
+    } else if (action === ApplicationAction.REJECT) {
+      // REJECT allowed from NEW, VIEWED, or SHORTLISTED
+      if (
+        application.status !== ApplicationStatus.NEW &&
+        application.status !== ApplicationStatus.VIEWED &&
+        application.status !== ApplicationStatus.SHORTLISTED
+      ) {
+        throw new BadRequestException(
+          `Không thể từ chối hồ sơ từ trạng thái "${application.status}". Chỉ cho phép với trạng thái "new", "viewed" hoặc "shortlisted".`,
+        );
+      }
+    } else if (action === ApplicationAction.SHORTLIST) {
+      // SHORTLIST only allowed from NEW or VIEWED
+      if (
+        application.status !== ApplicationStatus.NEW &&
+        application.status !== ApplicationStatus.VIEWED
+      ) {
+        throw new BadRequestException(
+          `Không thể thêm vào danh sách tiềm năng từ trạng thái "${application.status}". Chỉ cho phép với trạng thái "new" hoặc "viewed".`,
+        );
+      }
     }
 
     // Map action to status
-    const newStatus =
-      action === ApplicationAction.SHORTLIST
-        ? ApplicationStatus.SHORTLISTED
-        : ApplicationStatus.REJECTED;
+    let newStatus: ApplicationStatus;
+    if (action === ApplicationAction.SHORTLIST) {
+      newStatus = ApplicationStatus.SHORTLISTED;
+    } else if (action === ApplicationAction.REJECT) {
+      newStatus = ApplicationStatus.REJECTED;
+    } else {
+      newStatus = ApplicationStatus.HIRED;
+    }
 
     // Update application status
     application.status = newStatus;
@@ -1271,10 +1305,14 @@ export class EmployersService {
     // This can be implemented later using a notification service
     // await this.notificationService.notifyApplicationStatusChange(application);
 
-    const statusMessage =
-      action === ApplicationAction.SHORTLIST
-        ? 'Đã thêm vào danh sách phù hợp'
-        : 'Đã từ chối hồ sơ';
+    let statusMessage: string;
+    if (action === ApplicationAction.SHORTLIST) {
+      statusMessage = 'Đã thêm vào danh sách phù hợp';
+    } else if (action === ApplicationAction.REJECT) {
+      statusMessage = 'Đã từ chối hồ sơ';
+    } else {
+      statusMessage = 'Đã tuyển dụng ứng viên';
+    }
 
     return {
       id: application.id,

@@ -40,6 +40,50 @@ export class JobCategoryDto {
 }
 
 /**
+ * Job-Category junction info
+ */
+export class JobJobCategoryDto {
+  @Expose()
+  categoryId: string;
+
+  @Expose()
+  isPrimary: boolean;
+
+  @Expose()
+  @Type(() => JobCategoryDto)
+  category: JobCategoryDto;
+}
+
+/**
+ * Technology info for job detail
+ */
+export class JobTechnologyInfoDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  slug: string;
+}
+
+/**
+ * Job-Technology junction info
+ */
+export class JobJobTechnologyDto {
+  @Expose()
+  technologyId: string;
+
+  @Expose()
+  isPrimary: boolean;
+
+  @Expose()
+  @Type(() => JobTechnologyInfoDto)
+  technology: JobTechnologyInfoDto;
+}
+
+/**
  * Location info for job detail
  */
 export class JobLocationDto {
@@ -151,6 +195,14 @@ export class JobDetailDto {
   @Expose()
   @Type(() => JobCategoryDto)
   category: JobCategoryDto;
+
+  @Expose()
+  @Type(() => JobJobCategoryDto)
+  jobCategories: JobJobCategoryDto[];
+
+  @Expose()
+  @Type(() => JobJobTechnologyDto)
+  jobTechnologies: JobJobTechnologyDto[];
 
   @Expose()
   @Type(() => JobLocationDto)

@@ -104,6 +104,8 @@ export class AdminJobApprovalService {
         'employer',
         'jobCategories',
         'jobCategories.category',
+        'jobTechnologies',
+        'jobTechnologies.technology',
         'location',
       ],
     });

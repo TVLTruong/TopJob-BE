@@ -10,6 +10,7 @@ import { IsEnum } from 'class-validator';
 export enum ApplicationAction {
   SHORTLIST = 'shortlist',
   REJECT = 'reject',
+  HIRE = 'hire',
 }
 
 /**
@@ -23,7 +24,7 @@ export class ActionApplicationParamDto {
     example: ApplicationAction.SHORTLIST,
   })
   @IsEnum(ApplicationAction, {
-    message: 'Action phải là shortlist hoặc reject',
+    message: 'Action phải là shortlist, reject hoặc hire',
   })
   action: ApplicationAction;
 }

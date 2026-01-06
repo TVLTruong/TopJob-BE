@@ -4,13 +4,21 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, Candidate, Employer } from '../../database/entities';
-import { UserRole, UserStatus, EmployerStatus } from '../../common/enums';
-import { UserResponseDto, UpdatePasswordDto } from './dto';
+import {
+  UserRole,
+  UserStatus,
+  EmployerStatus,
+  OtpPurpose,
+} from '../../common/enums';
+import { UserResponseDto, UpdatePasswordDto, UpdateUserInfoDto } from './dto';
+import { OtpService } from '../auth/services/otp.service';
+import { EmailService } from '../auth/services/email.service';
 
 /**
  * Users Service
@@ -25,6 +33,8 @@ export class UsersService {
     private readonly candidateRepository: Repository<Candidate>,
     @InjectRepository(Employer)
     private readonly employerRepository: Repository<Employer>,
+    private readonly otpService: OtpService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -244,5 +254,166 @@ export class UsersService {
     }
 
     return response;
+  }
+
+  /**
+   * Request OTP for updating account information
+   */
+  async requestUpdateInfoOtp(
+    userId: string,
+  ): Promise<{ message: string; expiresAt: Date }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Generate and save OTP
+    const { otpCode } = await this.otpService.createOtp(
+      user.email,
+      OtpPurpose.ACCOUNT_UPDATE,
+    );
+
+    // Send OTP email
+    await this.emailService.sendOtpEmail(
+      user.email,
+      otpCode,
+      OtpPurpose.ACCOUNT_UPDATE,
+    );
+
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 minutes expiry
+
+    return {
+      message: 'Mã OTP đã được gửi đến email của bạn',
+      expiresAt,
+    };
+  }
+
+  /**
+   * Update user account information with OTP verification (for employers)
+   */
+  async updateUserInfo(
+    userId: string,
+    dto: UpdateUserInfoDto,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['employer'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Only employers can update this info
+    if (user.role !== UserRole.EMPLOYER || !user.employer) {
+      throw new BadRequestException(
+        'Chỉ nhà tuyển dụng mới có thể cập nhật thông tin này',
+      );
+    }
+
+    // Verify OTP
+    await this.otpService.verifyOtp(
+      user.email,
+      dto.otpCode,
+      OtpPurpose.ACCOUNT_UPDATE,
+    );
+
+    // Update employer profile
+    const employer = user.employer;
+    if (dto.fullName !== undefined) employer.fullName = dto.fullName;
+    if (dto.workTitle !== undefined) employer.workTitle = dto.workTitle;
+    if (dto.contactEmail !== undefined)
+      employer.contactEmail = dto.contactEmail;
+    if (dto.contactPhone !== undefined)
+      employer.contactPhone = dto.contactPhone;
+
+    await this.employerRepository.save(employer);
+
+    return { message: 'Cập nhật thông tin tài khoản thành công' };
+  }
+
+  /**
+   * Request OTP for changing password
+   */
+  async requestPasswordChangeOtp(
+    userId: string,
+  ): Promise<{ message: string; expiresAt: Date }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Generate and save OTP
+    const { otpCode } = await this.otpService.createOtp(
+      user.email,
+      OtpPurpose.PASSWORD_CHANGE,
+    );
+
+    // Send OTP email
+    await this.emailService.sendOtpEmail(
+      user.email,
+      otpCode,
+      OtpPurpose.PASSWORD_CHANGE,
+    );
+
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 minutes expiry
+
+    return {
+      message: 'Mã OTP đã được gửi đến email của bạn',
+      expiresAt,
+    };
+  }
+
+  /**
+   * Update password with OTP verification
+   */
+  async updatePasswordWithOtp(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    otpCode: string,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Mật khẩu hiện tại không đúng');
+    }
+
+    // Verify OTP
+    await this.otpService.verifyOtp(
+      user.email,
+      otpCode,
+      OtpPurpose.PASSWORD_CHANGE,
+    );
+
+    // Hash new password
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password
+    user.passwordHash = newPasswordHash;
+    await this.userRepository.save(user);
+
+    return { message: 'Đổi mật khẩu thành công' };
   }
 }
