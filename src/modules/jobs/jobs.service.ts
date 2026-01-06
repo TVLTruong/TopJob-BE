@@ -182,6 +182,41 @@ export class JobsService {
   }
 
   /**
+   * PUBLIC API - Lấy danh sách công việc đang tuyển của employer
+   * Dùng cho company profile page
+   *
+   * @param employerId - ID của employer
+   * @param limit - Số lượng job tối đa (mặc định 4)
+   * @returns Danh sách jobs ACTIVE, sắp xếp theo expiredAt (sớm nhất trước)
+   */
+  async findActiveJobsByEmployer(
+    employerId: string,
+    limit: number = 4,
+  ): Promise<Job[]> {
+    const jobs = await this.jobRepo.find({
+      where: {
+        employerId: employerId,
+        status: JobStatus.ACTIVE,
+      },
+      relations: [
+        'location',
+        'jobCategories',
+        'jobCategories.category',
+        'jobTechnologies',
+        'jobTechnologies.technology',
+      ],
+      order: {
+        expiredAt: 'ASC', // Sắp xếp theo deadline sớm nhất
+      },
+      take: limit,
+    });
+
+    // Lọc thêm jobs chưa hết hạn
+    const now = new Date();
+    return jobs.filter((job) => job.expiredAt && job.expiredAt > now);
+  }
+
+  /**
    * PUBLIC API - Xem chi tiết Job công khai
    * UC-GUEST-02: Xem chi tiết việc làm
    *

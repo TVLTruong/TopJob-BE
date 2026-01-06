@@ -10,6 +10,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { Public } from '../../common/decorators/public.decorator'; // 👈 (Dùng 'tool' chung)
+import { Job } from '../../database/entities/job.entity';
 // import { SearchJobsDto } from './dto/search-jobs.dto';
 import { PublicSearchJobsDto } from './dto/public-search-jobs.dto';
 import { JobIdentifierDto } from './dto/job-identifier.dto';
@@ -105,6 +106,36 @@ export class JobsController {
   })
   findOnePublic(@Param() param: JobIdentifierDto) {
     return this.jobsService.findOnePublicByIdentifier(param.identifier);
+  }
+
+  /**
+   * PUBLIC API - Lấy danh sách công việc đang tuyển của employer
+   * GET /api/jobs/employer/:employerId/active
+   * Features:
+   * - Không yêu cầu authentication (Guest có thể xem)
+   * - Chỉ trả về jobs ACTIVE và chưa hết hạn
+   * - Sắp xếp theo expiredAt (deadline sớm nhất trước)
+   * - Giới hạn 4 jobs (phù hợp cho company profile page)
+   * @param employerId - ID của employer
+   * @returns Danh sách tối đa 4 jobs
+   */
+  @Public()
+  @Get('employer/:employerId/active')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Lấy công việc đang tuyển của công ty (Public)',
+    description:
+      'Trả về tối đa 4 công việc ACTIVE, chưa hết hạn, sắp xếp theo deadline sớm nhất. Dùng cho company profile.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách công việc',
+    type: [Job],
+  })
+  async findActiveJobsByEmployer(
+    @Param('employerId') employerId: string,
+  ): Promise<Job[]> {
+    return await this.jobsService.findActiveJobsByEmployer(employerId, 4);
   }
 
   // (Các API 'POST', 'PATCH' (Cụm 4) của Employer/Admin sẽ được thêm sau)

@@ -197,6 +197,9 @@ export class CandidateJobService {
     });
     const savedApplication = await this.applicationRepository.save(application);
 
+    // Increment job's applyCount
+    await this.jobRepository.increment({ id: jobId }, 'applyCount', 1);
+
     return {
       message: 'Ứng tuyển thành công',
       applicationId: savedApplication.id,
