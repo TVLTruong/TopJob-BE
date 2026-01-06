@@ -281,6 +281,7 @@ export class UsersService {
       user.email,
       otpCode,
       OtpPurpose.ACCOUNT_UPDATE,
+      5,
     );
 
     const expiresAt = new Date();
@@ -361,6 +362,7 @@ export class UsersService {
       user.email,
       otpCode,
       OtpPurpose.PASSWORD_CHANGE,
+      5,
     );
 
     const expiresAt = new Date();

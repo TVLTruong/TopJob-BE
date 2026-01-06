@@ -156,7 +156,7 @@ export class UsersController {
    * Update account information with OTP
    * PUT /users/me/info
    */
-  @Put('me/info')
+  @Put('me/update-info')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Cập nhật thông tin tài khoản',
