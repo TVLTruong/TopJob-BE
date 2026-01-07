@@ -25,7 +25,13 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums';
 import { IdParamDto } from '../../common/dto/id-param.dto';
 import { AdminJobManagementService } from './admin-job-management.service';
-import { QueryJobDto, JobDetailDto, RemoveJobDto } from './dto';
+import {
+  QueryJobDto,
+  JobDetailDto,
+  RemoveJobDto,
+  UpdateJobStatusDto,
+  ToggleJobHotDto,
+} from './dto';
 
 /**
  * Admin Job Management Controller
@@ -122,6 +128,80 @@ export class AdminJobManagementController {
       message: 'Job đã được gỡ bởi admin thành công',
       jobId: params.id,
       status: 'REMOVED_BY_ADMIN',
+    };
+  }
+
+  /**
+   * Toggle job hot status
+   */
+  @Post(':id/hot')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Đặt/bỏ tin nổi bật',
+    description: 'Toggle isHot flag cho job. Chỉ áp dụng cho ACTIVE jobs.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Job ID',
+    example: '123',
+  })
+  async toggleJobHot(
+    @Param() params: IdParamDto,
+    @Body() dto: ToggleJobHotDto,
+  ) {
+    await this.adminJobManagementService.toggleJobHot(params.id, dto.isHot);
+    return {
+      message: dto.isHot ? 'Đã đặt tin nổi bật' : 'Đã bỏ tin nổi bật',
+      jobId: params.id,
+    };
+  }
+
+  /**
+   * Restore removed job
+   */
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Khôi phục tin đã xóa',
+    description: 'Khôi phục job từ REMOVED_BY_ADMIN/EMPLOYER về HIDDEN.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Job ID',
+    example: '123',
+  })
+  async restoreJob(@Param() params: IdParamDto) {
+    await this.adminJobManagementService.restoreJob(params.id);
+    return {
+      message: 'Đã khôi phục tin tuyển dụng',
+      jobId: params.id,
+      status: 'HIDDEN',
+    };
+  }
+
+  /**
+   * Update job status
+   */
+  @Post(':id/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cập nhật trạng thái tin tuyển dụng',
+    description: 'Thay đổi status giữa ACTIVE, HIDDEN, EXPIRED, CLOSED.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Job ID',
+    example: '123',
+  })
+  async updateJobStatus(
+    @Param() params: IdParamDto,
+    @Body() dto: UpdateJobStatusDto,
+  ) {
+    await this.adminJobManagementService.updateJobStatus(params.id, dto.status);
+    return {
+      message: 'Đã cập nhật trạng thái tin tuyển dụng',
+      jobId: params.id,
+      status: dto.status,
     };
   }
 }

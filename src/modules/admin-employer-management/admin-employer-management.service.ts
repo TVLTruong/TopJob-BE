@@ -19,6 +19,7 @@ import {
   EmployerUserInfoDto,
   EmployerProfileInfoDto,
   EmployerJobStatsDto,
+  EmployerLocationDto,
   BanEmployerDto,
 } from './dto';
 
@@ -97,7 +98,12 @@ export class AdminEmployerManagementService {
   async getEmployerDetail(userId: string): Promise<EmployerDetailResponseDto> {
     const user = await this.userRepository.findOne({
       where: { id: userId, role: UserRole.EMPLOYER },
-      relations: ['employer'],
+      relations: [
+        'employer',
+        'employer.locations',
+        'employer.employerCategories',
+        'employer.employerCategories.category',
+      ],
     });
 
     if (!user) {
@@ -122,10 +128,29 @@ export class AdminEmployerManagementService {
       excludeExtraneousValues: true,
     });
 
+    // Add locations
+    const locations =
+      user.employer.locations?.map((loc) =>
+        plainToInstance(EmployerLocationDto, loc, {
+          excludeExtraneousValues: true,
+        }),
+      ) || [];
+
+    // Add categories/industries
+    const industries =
+      user.employer.employerCategories?.map((ec) => ({
+        id: ec.category.id,
+        name: ec.category.name,
+        slug: ec.category.slug,
+        isPrimary: ec.isPrimary,
+      })) || [];
+
     return {
       user: userInfo,
       profile: profileInfo,
       jobStats,
+      locations,
+      industries,
     };
   }
 

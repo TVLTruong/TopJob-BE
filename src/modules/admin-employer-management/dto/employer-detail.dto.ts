@@ -76,6 +76,18 @@ export class EmployerProfileInfoDto {
   contactPhone: string | null;
 
   @Expose()
+  linkedlnUrl: string | null;
+
+  @Expose()
+  facebookUrl: string | null;
+
+  @Expose()
+  xUrl: string | null;
+
+  @Expose()
+  benefits: string[] | null;
+
+  @Expose()
   status: EmployerStatus;
 
   @Expose()
@@ -103,6 +115,36 @@ export class EmployerJobStatsDto {
 }
 
 /**
+ * Employer location information
+ */
+export class EmployerLocationDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  province: string;
+
+  @Expose()
+  district: string;
+
+  @Expose()
+  detailedAddress: string;
+
+  @Expose()
+  isHeadquarters: boolean;
+}
+
+/**
+ * Industry/Category information
+ */
+export class EmployerIndustryDto {
+  id: string;
+  name: string;
+  slug: string;
+  isPrimary: boolean;
+}
+
+/**
  * Complete employer detail response
  */
 export class EmployerDetailResponseDto {
@@ -117,4 +159,11 @@ export class EmployerDetailResponseDto {
   @Expose()
   @Type(() => EmployerJobStatsDto)
   jobStats: EmployerJobStatsDto;
+
+  @Expose()
+  @Type(() => EmployerLocationDto)
+  locations: EmployerLocationDto[];
+
+  @Expose()
+  industries: EmployerIndustryDto[];
 }

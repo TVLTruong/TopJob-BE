@@ -19,6 +19,7 @@ import {
   CandidateUserInfoDto,
   CandidateProfileInfoDto,
   CandidateApplicationStatsDto,
+  CandidateCvDto,
   BanCandidateDto,
   UpdateCandidateDto,
 } from './dto';
@@ -100,7 +101,7 @@ export class AdminCandidateManagementService {
   ): Promise<CandidateDetailResponseDto> {
     const user = await this.userRepository.findOne({
       where: { id: userId, role: UserRole.CANDIDATE },
-      relations: ['candidate'],
+      relations: ['candidate', 'candidate.cvs'],
     });
 
     if (!user) {
@@ -129,10 +130,18 @@ export class AdminCandidateManagementService {
       },
     );
 
+    const cvs =
+      user.candidate.cvs?.map((cv) =>
+        plainToInstance(CandidateCvDto, cv, {
+          excludeExtraneousValues: true,
+        }),
+      ) || [];
+
     return {
       user: userInfo,
       profile: profileInfo,
       applicationStats,
+      cvs,
     };
   }
 

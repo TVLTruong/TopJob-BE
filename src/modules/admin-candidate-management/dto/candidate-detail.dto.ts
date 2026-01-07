@@ -91,10 +91,54 @@ export class CandidateProfileInfoDto {
   skills: string[] | null;
 
   @Expose()
+  education: Array<{
+    school: string;
+    degree: string;
+    major: string;
+    startDate: string;
+    endDate?: string;
+    currentlyStudying: boolean;
+    additionalDetails?: string;
+  }> | null;
+
+  @Expose()
+  workExperience: Array<{
+    jobTitle: string;
+    company: string;
+    startDate: string;
+    endDate?: string;
+    currentlyWorking: boolean;
+    description?: string;
+  }> | null;
+
+  @Expose()
   createdAt: Date;
 
   @Expose()
   updatedAt: Date;
+}
+
+/**
+ * Candidate CV information
+ */
+export class CandidateCvDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  fileName: string;
+
+  @Expose()
+  fileUrl: string;
+
+  @Expose()
+  fileSize: number;
+
+  @Expose()
+  uploadedAt: Date;
+
+  @Expose()
+  isDefault: boolean;
 }
 
 /**
@@ -135,4 +179,8 @@ export class CandidateDetailResponseDto {
   @Expose()
   @Type(() => CandidateApplicationStatsDto)
   applicationStats: CandidateApplicationStatsDto;
+
+  @Expose()
+  @Type(() => CandidateCvDto)
+  cvs: CandidateCvDto[];
 }

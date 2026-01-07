@@ -296,4 +296,89 @@ export class AdminJobManagementService {
       await queryRunner.release();
     }
   }
+
+  /**
+   * Toggle job hot status (isHot flag)
+   * Only ACTIVE jobs can be marked as hot
+   */
+  async toggleJobHot(jobId: string, isHot: boolean): Promise<void> {
+    const job = await this.jobRepository.findOne({
+      where: { id: jobId },
+    });
+
+    if (!job) {
+      throw new NotFoundException(`Không tìm thấy job với ID: ${jobId}`);
+    }
+
+    if (job.status !== JobStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Chỉ có thể đặt tin nổi bật cho tin đang hoạt động',
+      );
+    }
+
+    job.isHot = isHot;
+    await this.jobRepository.save(job);
+
+    this.logger.log(`Job ${jobId} hot status changed to ${isHot}`);
+  }
+
+  /**
+   * Restore removed job back to HIDDEN status
+   * Can restore REMOVED_BY_ADMIN or REMOVED_BY_EMPLOYER
+   */
+  async restoreJob(jobId: string): Promise<void> {
+    const job = await this.jobRepository.findOne({
+      where: { id: jobId },
+    });
+
+    if (!job) {
+      throw new NotFoundException(`Không tìm thấy job với ID: ${jobId}`);
+    }
+
+    if (
+      job.status !== JobStatus.REMOVED_BY_ADMIN &&
+      job.status !== JobStatus.REMOVED_BY_EMPLOYER
+    ) {
+      throw new BadRequestException('Chỉ có thể khôi phục tin đã bị xóa');
+    }
+
+    // Restore to HIDDEN status (employer can unhide later)
+    job.status = JobStatus.HIDDEN;
+    await this.jobRepository.save(job);
+
+    this.logger.log(`Job ${jobId} restored from ${job.status} to HIDDEN`);
+  }
+
+  /**
+   * Update job status
+   * Admin can change job status between ACTIVE, HIDDEN, INACTIVE
+   */
+  async updateJobStatus(jobId: string, newStatus: JobStatus): Promise<void> {
+    const job = await this.jobRepository.findOne({
+      where: { id: jobId },
+    });
+
+    if (!job) {
+      throw new NotFoundException(`Không tìm thấy job với ID: ${jobId}`);
+    }
+
+    // Validate status transitions
+    const allowedStatuses = [
+      JobStatus.ACTIVE,
+      JobStatus.HIDDEN,
+      JobStatus.EXPIRED,
+      JobStatus.CLOSED,
+    ];
+
+    if (!allowedStatuses.includes(newStatus)) {
+      throw new BadRequestException(
+        `Không thể chuyển sang trạng thái ${newStatus}`,
+      );
+    }
+
+    job.status = newStatus;
+    await this.jobRepository.save(job);
+
+    this.logger.log(`Job ${jobId} status updated to ${newStatus}`);
+  }
 }

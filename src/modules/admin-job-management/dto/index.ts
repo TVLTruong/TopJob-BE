@@ -3,3 +3,4 @@
 export * from './query-job.dto';
 export * from './job-detail.dto';
 export * from './remove-job.dto';
+export * from './update-job-status.dto';
