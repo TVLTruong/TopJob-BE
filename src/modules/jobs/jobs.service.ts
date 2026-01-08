@@ -110,7 +110,7 @@ export class JobsService {
 
     // 6.5. Filter theo categoryId (job categories)
     if (dto.categoryId && typeof dto.categoryId === 'string') {
-      const trimmedCategoryId = (dto.categoryId as string).trim();
+      const trimmedCategoryId = dto.categoryId.trim();
       if (trimmedCategoryId) {
         queryBuilder.andWhere('category.id = :categoryId', {
           categoryId: trimmedCategoryId,
@@ -138,7 +138,7 @@ export class JobsService {
     // 8. Filter theo isHot (công việc nổi bật)
     if (dto.isHot !== undefined && typeof dto.isHot === 'boolean') {
       queryBuilder.andWhere('job.isHot = :isHot', {
-        isHot: dto.isHot as boolean,
+        isHot: dto.isHot,
       });
     }
 
