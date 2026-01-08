@@ -155,4 +155,8 @@ export class CandidatesService {
   async getApplications(userId: string): Promise<Application[]> {
     return this.jobService.getApplications(userId);
   }
+
+  async unapplyJob(userId: string, jobId: string): Promise<{ message: string }> {
+    return this.jobService.unapplyJob(userId, jobId);
+  }
 }

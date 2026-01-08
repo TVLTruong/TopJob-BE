@@ -462,6 +462,33 @@ export class CandidatesController {
   }
 
   /**
+   * Cancel application to a job
+   * DELETE /candidates/jobs/:jobId/apply
+   */
+  @Delete('/jobs/:jobId/apply')
+  @Roles(UserRole.CANDIDATE)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Hủy ứng tuyển công việc',
+    description: 'Xóa đơn ứng tuyển của ứng viên cho công việc chỉ định',
+  })
+  @ApiParam({
+    name: 'jobId',
+    description: 'ID của công việc cần hủy ứng tuyển',
+    example: '1',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Hủy ứng tuyển thành công',
+  })
+  async unapplyJob(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('jobId') jobId: string,
+  ): Promise<{ message: string }> {
+    return this.candidatesService.unapplyJob(user.id, jobId);
+  }
+
+  /**
    * Get candidate profile by ID (Employer/Admin only)
    * GET /candidates/:id
    */
