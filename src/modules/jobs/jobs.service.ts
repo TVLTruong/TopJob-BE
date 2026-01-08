@@ -77,12 +77,12 @@ export class JobsService {
       const keyword = dto.keyword.trim();
       // Normalize keyword: replace spaces and hyphens with underscore for enum matching
       const normalizedKeyword = keyword.replace(/[\s-]/g, '_');
-      
+
       queryBuilder.andWhere(
         '(job.title ILIKE :keyword OR job.description ILIKE :keyword OR CAST(job.employmentType AS TEXT) ILIKE :normalizedKeyword OR CAST(job.experienceLevel AS TEXT) ILIKE :normalizedKeyword OR category.name ILIKE :keyword)',
-        { 
+        {
           keyword: `%${keyword}%`,
-          normalizedKeyword: `%${normalizedKeyword}%`
+          normalizedKeyword: `%${normalizedKeyword}%`,
         },
       );
     }
@@ -109,10 +109,13 @@ export class JobsService {
     }
 
     // 6.5. Filter theo categoryId (job categories)
-    if (dto.categoryId && dto.categoryId.trim()) {
-      queryBuilder.andWhere('category.id = :categoryId', {
-        categoryId: dto.categoryId.trim(),
-      });
+    if (dto.categoryId && typeof dto.categoryId === 'string') {
+      const trimmedCategoryId = (dto.categoryId as string).trim();
+      if (trimmedCategoryId) {
+        queryBuilder.andWhere('category.id = :categoryId', {
+          categoryId: trimmedCategoryId,
+        });
+      }
     }
 
     // 7. Filter theo salary range
@@ -133,16 +136,18 @@ export class JobsService {
     }
 
     // 8. Filter theo isHot (công việc nổi bật)
-    if (dto.isHot !== undefined) {
-      queryBuilder.andWhere('job.isHot = :isHot', { isHot: dto.isHot });
+    if (dto.isHot !== undefined && typeof dto.isHot === 'boolean') {
+      queryBuilder.andWhere('job.isHot = :isHot', {
+        isHot: dto.isHot as boolean,
+      });
     }
 
     // 9. Sorting
     if (dto.sort === JobSortOption.RELEVANT) {
-      // Sắp xếp theo độ liên quan: ưu tiên isUrgent, isFeatured, sau đó publishedAt
+      // Sắp xếp theo độ liên quan: ưu tiên isUrgent, isHot, sau đó publishedAt
       queryBuilder
         .addOrderBy('job.isUrgent', 'DESC')
-        .addOrderBy('job.isFeatured', 'DESC')
+        .addOrderBy('job.isHot', 'DESC')
         .addOrderBy('job.publishedAt', 'DESC');
     } else {
       // Default: Sắp xếp theo mới nhất

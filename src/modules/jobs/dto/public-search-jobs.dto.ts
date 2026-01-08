@@ -1,5 +1,12 @@
 // src/modules/jobs/dto/public-search-jobs.dto.ts
-import { IsOptional, IsString, IsEnum, IsNumber, Min, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsNumber,
+  Min,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
