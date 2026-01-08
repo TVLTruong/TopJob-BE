@@ -29,6 +29,25 @@ export class CategoriesService {
       parentId: cat.parent ? cat.parent.id : null,
     }));
   }
+
+  async getRandomCategories(limit: number = 5): Promise<CategoryResponseDto[]> {
+    // Get all active root categories (no parent)
+    const categories = await this.categoryRepository.find({
+      where: { parent: null as any },
+      order: { name: 'ASC' },
+    });
+
+    // Shuffle and take limit
+    const shuffled = categories.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, Math.min(limit, categories.length));
+
+    return selected.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      parentId: null,
+    }));
+  }
 }
 
 @Injectable()

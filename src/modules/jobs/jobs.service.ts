@@ -72,11 +72,18 @@ export class JobsService {
       .where('job.status = :status', { status: JobStatus.ACTIVE })
       .andWhere('job.expiredAt > :now', { now: new Date() });
 
-    // 3. Tìm kiếm theo keyword (title hoặc description)
+    // 3. Tìm kiếm theo keyword (title, description, employmentType, experienceLevel, hoặc category name)
     if (dto.keyword && dto.keyword.trim()) {
+      const keyword = dto.keyword.trim();
+      // Normalize keyword: replace spaces and hyphens with underscore for enum matching
+      const normalizedKeyword = keyword.replace(/[\s-]/g, '_');
+      
       queryBuilder.andWhere(
-        '(job.title ILIKE :keyword OR job.description ILIKE :keyword)',
-        { keyword: `%${dto.keyword.trim()}%` },
+        '(job.title ILIKE :keyword OR job.description ILIKE :keyword OR CAST(job.employmentType AS TEXT) ILIKE :normalizedKeyword OR CAST(job.experienceLevel AS TEXT) ILIKE :normalizedKeyword OR category.name ILIKE :keyword)',
+        { 
+          keyword: `%${keyword}%`,
+          normalizedKeyword: `%${normalizedKeyword}%`
+        },
       );
     }
 
@@ -87,9 +94,9 @@ export class JobsService {
       });
     }
 
-    // 5. Filter theo jobType
+    // 5. Filter theo employmentType
     if (dto.jobType) {
-      queryBuilder.andWhere('job.jobType = :jobType', {
+      queryBuilder.andWhere('job.employmentType = :jobType', {
         jobType: dto.jobType,
       });
     }
@@ -98,6 +105,13 @@ export class JobsService {
     if (dto.experienceLevel) {
       queryBuilder.andWhere('job.experienceLevel = :experienceLevel', {
         experienceLevel: dto.experienceLevel,
+      });
+    }
+
+    // 6.5. Filter theo categoryId (job categories)
+    if (dto.categoryId && dto.categoryId.trim()) {
+      queryBuilder.andWhere('category.id = :categoryId', {
+        categoryId: dto.categoryId.trim(),
       });
     }
 
@@ -118,7 +132,12 @@ export class JobsService {
       );
     }
 
-    // 8. Sorting
+    // 8. Filter theo isHot (công việc nổi bật)
+    if (dto.isHot !== undefined) {
+      queryBuilder.andWhere('job.isHot = :isHot', { isHot: dto.isHot });
+    }
+
+    // 9. Sorting
     if (dto.sort === JobSortOption.RELEVANT) {
       // Sắp xếp theo độ liên quan: ưu tiên isUrgent, isFeatured, sau đó publishedAt
       queryBuilder
@@ -130,7 +149,7 @@ export class JobsService {
       queryBuilder.orderBy('job.publishedAt', 'DESC');
     }
 
-    // 9. Pagination và trả về kết quả
+    // 10. Pagination và trả về kết quả
     return createPaginationResponse(queryBuilder, dto.page, dto.limit);
   }
 

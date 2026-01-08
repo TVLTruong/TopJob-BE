@@ -48,6 +48,32 @@ export class CompaniesController {
   }
 
   /**
+   * PUBLIC API - Lấy danh sách công ty nổi bật (top by job count)
+   * GET /api/companies/featured
+   *
+   * Features:
+   * - Không yêu cầu authentication
+   * - Chỉ trả về employers có status = ACTIVE
+   * - Sắp xếp theo số lượng jobs ACTIVE
+   * - Giới hạn 6 công ty
+   */
+  @Public()
+  @Get('featured')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Lấy danh sách công ty nổi bật (Public)',
+    description:
+      'API để lấy top 6 công ty có nhiều việc làm nhất. Dùng cho trang chủ.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách công ty nổi bật',
+  })
+  getFeaturedCompanies() {
+    return this.companiesService.getFeaturedCompanies(6);
+  }
+
+  /**
    * PUBLIC API - Xem hồ sơ công ty
    * UC-GUEST-03: Xem hồ sơ công ty
    * GET /api/companies/:id

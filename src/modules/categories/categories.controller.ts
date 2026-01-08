@@ -9,13 +9,18 @@ import { CategoryResponseDto } from './dto/category-response.dto';
 import { EmployerCategoryDto } from './dto/employer-category.dto';
 import { TechnologyResponseDto } from './dto/technology-response.dto';
 
-@Controller('api/categories')
+@Controller('categories')
 export class CategoriesController {
   constructor(
     private readonly categoriesService: CategoriesService,
     private readonly employerCategoriesService: EmployerCategoriesService,
     private readonly technologiesService: TechnologiesService,
   ) {}
+
+  @Get('job/random')
+  getRandomJobCategories(): Promise<CategoryResponseDto[]> {
+    return this.categoriesService.getRandomCategories(5);
+  }
 
   @Get('job')
   getJobCategories(): Promise<CategoryResponseDto[]> {

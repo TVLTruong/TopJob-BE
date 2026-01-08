@@ -1,5 +1,5 @@
 // src/modules/jobs/dto/public-search-jobs.dto.ts
-import { IsOptional, IsString, IsEnum, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsNumber, Min, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
@@ -69,6 +69,18 @@ export class PublicSearchJobsDto extends PaginationDto {
   experienceLevel?: ExperienceLevel;
 
   /**
+   * Lọc theo lĩnh vực (category ID)
+   * @example "1"
+   */
+  @ApiPropertyOptional({
+    description: 'Lọc theo lĩnh vực công việc (category ID)',
+    example: '1',
+  })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  /**
    * Mức lương tối thiểu (VND)
    * @example 10000000
    */
@@ -97,6 +109,19 @@ export class PublicSearchJobsDto extends PaginationDto {
   @IsNumber()
   @Min(0)
   salaryMax?: number;
+
+  /**
+   * Lọc theo công việc nổi bật (hot jobs)
+   * @example true
+   */
+  @ApiPropertyOptional({
+    description: 'Chỉ lấy công việc nổi bật (isHot = true)',
+    example: true,
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isHot?: boolean;
 
   /**
    * Sắp xếp theo

@@ -1,7 +1,7 @@
 // src/modules/companies/companies.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Employer } from '../../database/entities/employer.entity'; // 👈 Nối dây (Bảng 3)
 import { Job } from '../../database/entities/job.entity'; // 👈 Nối dây (Bảng 8)
 import { EmployerStatus } from '../../common/enums'; // 👈 Nối dây (Tool)
@@ -35,55 +35,202 @@ export class CompaniesService {
    */
   async findAllPublic(
     dto: SearchCompaniesDto,
-  ): Promise<PaginationResponseDto<Employer>> {
-    // 1. Khởi tạo QueryBuilder với relations cần thiết
-    const queryBuilder = this.employerRepo
-      .createQueryBuilder('employer')
-      .leftJoinAndSelect('employer.locations', 'locations');
+  ): Promise<PaginationResponseDto<any>> {
+    // Build the base WHERE conditions
+    let whereConditions = 'employer.status = :status';
+    const params: any = { status: EmployerStatus.ACTIVE };
 
-    // 2. Filter cơ bản: Chỉ lấy ACTIVE employers
-    queryBuilder.where('employer.status = :status', {
-      status: EmployerStatus.ACTIVE,
+    // 3. Tìm kiếm theo company name hoặc lĩnh vực
+    if (dto.keyword && dto.keyword.trim()) {
+      whereConditions +=
+        ' AND (employer.companyName ILIKE :keyword OR EXISTS (SELECT 1 FROM employer_employer_categories eec INNER JOIN employer_categories ec ON eec.category_id = ec.id WHERE eec.employer_id = employer.id AND ec.name ILIKE :keyword))';
+      params.keyword = `%${dto.keyword.trim()}%`;
+    }
+
+    // 4. Filter theo city/province - use subquery
+    if (dto.city && dto.city.trim()) {
+      whereConditions +=
+        ' AND EXISTS (SELECT 1 FROM employer_locations el WHERE el.employer_id = employer.id AND el.province ILIKE :city)';
+      params.city = `%${dto.city.trim()}%`;
+    }
+
+    // 6. Filter theo industry - use subquery
+    if (dto.industry && dto.industry.trim()) {
+      whereConditions +=
+        ' AND EXISTS (SELECT 1 FROM employer_employer_categories eec INNER JOIN employer_categories ec ON eec.category_id = ec.id WHERE eec.employer_id = employer.id AND ec.name ILIKE :industry)';
+      params.industry = `%${dto.industry.trim()}%`;
+    }
+
+    // 8. Pagination
+    const page = dto.page || 1;
+    const limit = dto.limit || 10;
+    const skip = (page - 1) * limit;
+
+    // Build main query for getting paginated employers
+    const [employers, total] = await this.employerRepo
+      .createQueryBuilder('employer')
+      .where(whereConditions, params)
+      .orderBy('employer.companyName', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    // Load relations for the selected employers
+    const employerIds = employers.map((e) => e.id);
+    if (employerIds.length === 0) {
+      return {
+        data: [],
+        meta: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+    }
+
+    const employersWithRelations = await this.employerRepo
+      .createQueryBuilder('employer')
+      .leftJoinAndSelect('employer.locations', 'locations')
+      .leftJoinAndSelect('employer.employerCategories', 'employerCategories')
+      .leftJoinAndSelect('employerCategories.category', 'category')
+      .whereInIds(employerIds)
+      .orderBy('employer.companyName', 'ASC')
+      .getMany();
+
+    // 9. Transform data để có format giống getFeaturedCompanies
+    const transformedData = employersWithRelations.map((employer) => {
+      // Get unique provinces from locations
+      const uniqueLocations = Array.from(
+        new Set(
+          employer.locations?.map((loc) => loc.province).filter(Boolean) || [],
+        ),
+      );
+
+      // Get category names - ensure we get strings
+      const categories = employer.employerCategories
+        ?.map((ec) => {
+          if (ec.category && typeof ec.category.name === 'string') {
+            return ec.category.name;
+          }
+          return null;
+        })
+        .filter((name): name is string => name !== null) || [];
+
+      return {
+        id: employer.id,
+        companyName: employer.companyName,
+        logoUrl: employer.logoUrl,
+        categories,
+        locations: uniqueLocations,
+        jobCount: 0, // Will be updated if needed
+      };
     });
 
-    // 3. Tìm kiếm theo company name
-    if (dto.keyword && dto.keyword.trim()) {
-      queryBuilder.andWhere('employer.companyName ILIKE :keyword', {
-        keyword: `%${dto.keyword.trim()}%`,
-      });
+    // 10. Return paginated response
+    return {
+      data: transformedData,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * PUBLIC API - Lấy danh sách công ty nổi bật
+   * Sắp xếp theo số lượng jobs ACTIVE
+   *
+   * @param limit - Số lượng công ty tối đa (mặc định 6)
+   * @returns Danh sách employers với job count
+   */
+  async getFeaturedCompanies(limit: number = 6): Promise<any[]> {
+    // Bước 1: Lấy danh sách employer IDs với job count
+    const employerJobCounts = await this.employerRepo
+      .createQueryBuilder('employer')
+      .leftJoin(
+        'employer.jobs',
+        'job',
+        'job.status = :jobStatus AND job.expiredAt > :now',
+        {
+          jobStatus: 'active',
+          now: new Date(),
+        },
+      )
+      .where('employer.status = :employerStatus', {
+        employerStatus: EmployerStatus.ACTIVE,
+      })
+      .select('employer.id', 'employerId')
+      .addSelect('employer.companyName', 'companyName')
+      .addSelect('COUNT(job.id)', 'jobCount')
+      .groupBy('employer.id')
+      .addGroupBy('employer.companyName')
+      .orderBy('COUNT(job.id)', 'DESC')
+      .addOrderBy('employer.companyName', 'ASC')
+      .limit(limit)
+      .getRawMany();
+
+    // Nếu không có employer nào, trả về mảng rỗng
+    if (employerJobCounts.length === 0) {
+      return [];
     }
 
-    // 4. Filter theo city/province
-    // Tìm employers có ít nhất 1 location ở city được chỉ định
-    if (dto.city && dto.city.trim()) {
-      queryBuilder.andWhere(
-        'EXISTS (SELECT 1 FROM employer_locations el WHERE el.employer_id = employer.id AND el.province ILIKE :city)',
-        { city: `%${dto.city.trim()}%` },
-      );
-    }
+    // Bước 2: Lấy thông tin đầy đủ của các employers
+    const employerIds = employerJobCounts.map((e) => e.employerId);
+    const employers = await this.employerRepo.find({
+      where: {
+        id: In(employerIds) as any,
+      },
+      relations: ['locations', 'employerCategories', 'employerCategories.category'],
+    });
 
-    // 5. Filter theo company size
-    // if (dto.companySize) {
-    //   queryBuilder.andWhere('employer.companySize = :companySize', {
-    //     companySize: dto.companySize,
-    //   });
-    // }
+    // Bước 3: Tạo map jobCount theo employerId
+    const jobCountMap = new Map(
+      employerJobCounts.map((e) => [
+        e.employerId,
+        parseInt(e.jobCount || '0', 10),
+      ]),
+    );
 
-    // 6. Filter theo industry (nếu có field trong DB)
-    // Note: Hiện tại employer entity không có industry field
-    // Nếu cần, phải thêm relation với CompanyCategory hoặc thêm industry field
-    if (dto.industry && dto.industry.trim()) {
-      // Placeholder: Có thể search trong description
-      queryBuilder.andWhere('employer.description ILIKE :industry', {
-        industry: `%${dto.industry.trim()}%`,
-      });
-    }
+    // Bước 4: Transform và sắp xếp theo thứ tự ban đầu
+    const result = employerIds
+      .map((id) => {
+        const employer = employers.find((e) => e.id === id);
+        if (!employer) return null;
 
-    // 7. Sorting: Sắp xếp theo tên công ty
-    queryBuilder.orderBy('employer.companyName', 'ASC');
+        // Get unique provinces from locations
+        const uniqueLocations = Array.from(
+          new Set(
+            employer.locations
+              ?.map((loc) => loc.province)
+              .filter(Boolean) || [],
+          ),
+        );
 
-    // 8. Pagination và trả về kết quả
-    return createPaginationResponse(queryBuilder, dto.page, dto.limit);
+        // Get category names with type checking
+        const categories = employer.employerCategories
+          ?.map((ec) => {
+            if (ec.category && typeof ec.category.name === 'string') {
+              return ec.category.name;
+            }
+            return null;
+          })
+          .filter((name): name is string => name !== null) || [];
+
+        return {
+          id: employer.id,
+          companyName: employer.companyName,
+          logoUrl: employer.logoUrl,
+          categories,
+          locations: uniqueLocations,
+          jobCount: jobCountMap.get(id) || 0,
+        };
+      })
+      .filter(Boolean);
+
+    return result;
   }
 
   /**
