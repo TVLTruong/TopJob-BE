@@ -6,7 +6,6 @@ import { Employer } from '../../database/entities/employer.entity'; // 👈 Nố
 import { Job } from '../../database/entities/job.entity'; // 👈 Nối dây (Bảng 8)
 import { EmployerStatus } from '../../common/enums'; // 👈 Nối dây (Tool)
 import { SearchCompaniesDto } from './dto/search-companies.dto';
-import { createPaginationResponse } from '../../common/utils/query-builder.util';
 import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
 
 @Injectable()
@@ -38,7 +37,7 @@ export class CompaniesService {
   ): Promise<PaginationResponseDto<any>> {
     // Build the base WHERE conditions
     let whereConditions = 'employer.status = :status';
-    const params: any = { status: EmployerStatus.ACTIVE };
+    const params: Record<string, string> = { status: EmployerStatus.ACTIVE };
 
     // 3. Tìm kiếm theo company name hoặc lĩnh vực
     if (dto.keyword && dto.keyword.trim()) {
@@ -108,14 +107,15 @@ export class CompaniesService {
       );
 
       // Get category names - ensure we get strings
-      const categories = employer.employerCategories
-        ?.map((ec) => {
-          if (ec.category && typeof ec.category.name === 'string') {
-            return ec.category.name;
-          }
-          return null;
-        })
-        .filter((name): name is string => name !== null) || [];
+      const categories =
+        employer.employerCategories
+          ?.map((ec) => {
+            if (ec.category && typeof ec.category.name === 'string') {
+              return ec.category.name;
+            }
+            return null;
+          })
+          .filter((name): name is string => name !== null) || [];
 
       return {
         id: employer.id,
@@ -148,6 +148,12 @@ export class CompaniesService {
    */
   async getFeaturedCompanies(limit: number = 6): Promise<any[]> {
     // Bước 1: Lấy danh sách employer IDs với job count
+    interface EmployerJobCountRaw {
+      employerId: string;
+      companyName: string;
+      jobCount: string;
+    }
+
     const employerJobCounts = await this.employerRepo
       .createQueryBuilder('employer')
       .leftJoin(
@@ -170,7 +176,7 @@ export class CompaniesService {
       .orderBy('COUNT(job.id)', 'DESC')
       .addOrderBy('employer.companyName', 'ASC')
       .limit(limit)
-      .getRawMany();
+      .getRawMany<EmployerJobCountRaw>();
 
     // Nếu không có employer nào, trả về mảng rỗng
     if (employerJobCounts.length === 0) {
@@ -181,9 +187,13 @@ export class CompaniesService {
     const employerIds = employerJobCounts.map((e) => e.employerId);
     const employers = await this.employerRepo.find({
       where: {
-        id: In(employerIds) as any,
+        id: In(employerIds),
       },
-      relations: ['locations', 'employerCategories', 'employerCategories.category'],
+      relations: [
+        'locations',
+        'employerCategories',
+        'employerCategories.category',
+      ],
     });
 
     // Bước 3: Tạo map jobCount theo employerId
@@ -203,21 +213,21 @@ export class CompaniesService {
         // Get unique provinces from locations
         const uniqueLocations = Array.from(
           new Set(
-            employer.locations
-              ?.map((loc) => loc.province)
-              .filter(Boolean) || [],
+            employer.locations?.map((loc) => loc.province).filter(Boolean) ||
+              [],
           ),
         );
 
         // Get category names with type checking
-        const categories = employer.employerCategories
-          ?.map((ec) => {
-            if (ec.category && typeof ec.category.name === 'string') {
-              return ec.category.name;
-            }
-            return null;
-          })
-          .filter((name): name is string => name !== null) || [];
+        const categories =
+          employer.employerCategories
+            ?.map((ec) => {
+              if (ec.category && typeof ec.category.name === 'string') {
+                return ec.category.name;
+              }
+              return null;
+            })
+            .filter((name): name is string => name !== null) || [];
 
         return {
           id: employer.id,

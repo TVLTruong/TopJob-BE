@@ -1,5 +1,9 @@
 // src/modules/saved-jobs/saved-jobs.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SavedJob } from '../../database/entities/saved-job.entity';
@@ -7,6 +11,24 @@ import { Job } from '../../database/entities/job.entity';
 import { Candidate } from '../../database/entities/candidate.entity';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginationResponseDto } from '../../common/dto/pagination-response.dto';
+
+export interface SaveJobResponse {
+  saved: boolean;
+  message: string;
+}
+
+export interface UnsaveJobResponse {
+  saved: boolean;
+  message: string;
+}
+
+export interface CheckJobSavedResponse {
+  isSaved: boolean;
+  data: {
+    candidateId: string;
+    jobId: string;
+  };
+}
 
 @Injectable()
 export class SavedJobsService {
@@ -68,7 +90,7 @@ export class SavedJobsService {
   /**
    * Save a job for a candidate
    */
-  async saveJob(userId: string, jobId: string): Promise<any> {
+  async saveJob(userId: string, jobId: string): Promise<SaveJobResponse> {
     const candidate = await this.getCandidateByUserId(userId);
     const candidateId = candidate.id;
 
@@ -106,7 +128,7 @@ export class SavedJobsService {
   /**
    * Unsave a job for a candidate
    */
-  async unsaveJob(userId: string, jobId: string): Promise<any> {
+  async unsaveJob(userId: string, jobId: string): Promise<UnsaveJobResponse> {
     const candidate = await this.getCandidateByUserId(userId);
     const candidateId = candidate.id;
 
@@ -130,7 +152,10 @@ export class SavedJobsService {
   /**
    * Check if a job is saved by a candidate
    */
-  async checkJobSaved(userId: string, jobId: string): Promise<any> {
+  async checkJobSaved(
+    userId: string,
+    jobId: string,
+  ): Promise<CheckJobSavedResponse> {
     const candidate = await this.getCandidateByUserId(userId);
     const candidateId = candidate.id;
 

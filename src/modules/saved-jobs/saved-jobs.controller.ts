@@ -8,13 +8,23 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { SavedJobsService } from './saved-jobs.service';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import {
+  SavedJobsService,
+  SaveJobResponse,
+  UnsaveJobResponse,
+  CheckJobSavedResponse,
+} from './saved-jobs.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { Query } from '@nestjs/common';
@@ -41,10 +51,9 @@ export class SavedJobsController {
     description: 'List of saved jobs with pagination',
   })
   async getSavedJobs(
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
     @Query() pagination: PaginationDto,
   ) {
-    const userId = req.user.id;
     return this.savedJobsService.getSavedJobs(userId, pagination);
   }
 
@@ -63,10 +72,9 @@ export class SavedJobsController {
     description: 'Job saved successfully',
   })
   async saveJob(
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
-  ) {
-    const userId = req.user.id;
+  ): Promise<SaveJobResponse> {
     return this.savedJobsService.saveJob(userId, jobId);
   }
 
@@ -85,10 +93,9 @@ export class SavedJobsController {
     description: 'Job unsaved successfully',
   })
   async unsaveJob(
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
-  ) {
-    const userId = req.user.id;
+  ): Promise<UnsaveJobResponse> {
     return this.savedJobsService.unsaveJob(userId, jobId);
   }
 
@@ -107,10 +114,9 @@ export class SavedJobsController {
     description: 'Returns true if job is saved, false otherwise',
   })
   async checkJobSaved(
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
-  ) {
-    const userId = req.user.id;
+  ): Promise<CheckJobSavedResponse> {
     return this.savedJobsService.checkJobSaved(userId, jobId);
   }
 }

@@ -163,7 +163,10 @@ export class CandidateJobService {
       },
     });
 
-    if (existingApplication && existingApplication.status !== ApplicationStatus.WITHDRAWN) {
+    if (
+      existingApplication &&
+      existingApplication.status !== ApplicationStatus.WITHDRAWN
+    ) {
       throw new BadRequestException('Bạn đã ứng tuyển công việc này rồi');
     }
 
@@ -188,12 +191,16 @@ export class CandidateJobService {
     }
 
     // If reapplying (previous status was WITHDRAWN), update existing application
-    if (existingApplication && existingApplication.status === ApplicationStatus.WITHDRAWN) {
+    if (
+      existingApplication &&
+      existingApplication.status === ApplicationStatus.WITHDRAWN
+    ) {
       existingApplication.status = ApplicationStatus.NEW;
       existingApplication.appliedAt = new Date();
       existingApplication.cvId = cvToUse.id;
       existingApplication.statusUpdatedAt = new Date();
-      const updatedApplication = await this.applicationRepository.save(existingApplication);
+      const updatedApplication =
+        await this.applicationRepository.save(existingApplication);
       return {
         message: 'Ứng tuyển thành công',
         applicationId: updatedApplication.id,
@@ -252,9 +259,14 @@ export class CandidateJobService {
   /**
    * Cancel application to a job (unapply)
    */
-  async unapplyJob(userId: string, jobId: string): Promise<{ message: string }> {
+  async unapplyJob(
+    userId: string,
+    jobId: string,
+  ): Promise<{ message: string }> {
     // Get candidate
-    const candidate = await this.candidateRepository.findOne({ where: { userId } });
+    const candidate = await this.candidateRepository.findOne({
+      where: { userId },
+    });
     if (!candidate) {
       throw new NotFoundException('Không tìm thấy hồ sơ ứng viên');
     }

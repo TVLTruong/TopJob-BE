@@ -1,7 +1,7 @@
 // src/modules/categories/categories.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, TreeRepository } from 'typeorm';
+import { Repository, TreeRepository, IsNull } from 'typeorm';
 import {
   JobCategory,
   EmployerCategory,
@@ -33,7 +33,7 @@ export class CategoriesService {
   async getRandomCategories(limit: number = 5): Promise<CategoryResponseDto[]> {
     // Get all active root categories (no parent)
     const categories = await this.categoryRepository.find({
-      where: { parent: null as any },
+      where: { parent: IsNull() },
       order: { name: 'ASC' },
     });
 
