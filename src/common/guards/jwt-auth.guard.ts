@@ -81,6 +81,7 @@ export class JwtAuthGuard implements CanActivate {
       // Map JWT payload to AuthenticatedUser and attach to request
       const user: AuthenticatedUser = {
         id: payload.sub,
+        email: payload.email,
         role: payload.role,
         status: payload.status,
       };

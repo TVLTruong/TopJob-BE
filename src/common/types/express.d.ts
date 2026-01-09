@@ -16,6 +16,11 @@ export interface AuthenticatedUser {
   id: string;
 
   /**
+   * User email from JWT email claim
+   */
+  email: string;
+
+  /**
    * User role for authorization
    */
   role: UserRole;

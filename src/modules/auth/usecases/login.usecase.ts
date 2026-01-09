@@ -51,6 +51,7 @@ export class LoginUseCase {
 
   /** Find user by email; throw if not found */
   private async findUserByEmail(email: string): Promise<User> {
+    console.log('[LOGIN] Looking for user with email:', email.toLowerCase());
     const user = await this.userRepository.findOne({
       where: { email: email.toLowerCase() },
     });
@@ -59,6 +60,7 @@ export class LoginUseCase {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
+    console.log('[LOGIN] Found user:', { id: user.id, email: user.email, role: user.role });
     return user;
   }
 
@@ -91,6 +93,7 @@ export class LoginUseCase {
       status: user.status,
     };
 
+    console.log('[LOGIN] Creating JWT with payload:', payload);
     const accessToken = this.jwtAuthService.generateAccessToken(payload);
     const expiresIn = this.jwtAuthService.getExpiresIn();
 

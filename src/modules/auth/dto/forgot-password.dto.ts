@@ -6,6 +6,7 @@ import {
   IsString,
   MinLength,
   Matches,
+  Length,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { MatchPassword } from '../validators/match-password.validator';
@@ -25,7 +26,7 @@ export class ForgotPasswordDto {
 
 /**
  * DTO for Reset Password (UC-AUTH-03 Step 9-10)
- * Note: OTP đã được verify ở bước trước thông qua /verify-email
+ * Note: OTP phải được verify trước đó thông qua /auth/verify-otp với purpose=PASSWORD_RESET
  */
 export class ResetPasswordDto {
   @ApiProperty({
@@ -35,6 +36,15 @@ export class ResetPasswordDto {
   @IsNotEmpty({ message: 'Email không được để trống' })
   @IsEmail({}, { message: 'Email không đúng định dạng' })
   email: string;
+
+  @ApiProperty({
+    description: 'Mã OTP đã được xác thực',
+    example: '123456',
+  })
+  @IsNotEmpty({ message: 'Mã OTP không được để trống' })
+  @IsString({ message: 'Mã OTP phải là chuỗi ký tự' })
+  @Length(6, 6, { message: 'Mã OTP phải có đúng 6 ký tự' })
+  otpCode: string;
 
   @ApiProperty({
     description:

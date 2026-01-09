@@ -80,6 +80,18 @@ export class ForgotPasswordUseCase {
       throw new NotFoundException('Không tìm thấy tài khoản với email này.');
     }
 
+    // Verify OTP before resetting password
+    try {
+      await this.otpService.verifyOtp(
+        user.email,
+        dto.otpCode,
+        OtpPurpose.PASSWORD_RESET,
+      );
+    } catch (error) {
+      console.error('[RESET_PASSWORD] OTP verification failed:', error);
+      throw error;
+    }
+
     const newPasswordHash = await bcrypt.hash(
       dto.newPassword,
       this.SALT_ROUNDS,

@@ -20,7 +20,8 @@ import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards';
 import { CurrentUser } from '../../common/decorators';
 import type { JwtPayload } from '../auth/services/jwt.service';
-import { UserResponseDto, UpdatePasswordDto, UpdateUserInfoDto } from './dto';
+import type { AuthenticatedUser } from '../../common/types/express';
+import { UserResponseDto, UpdatePasswordDto, UpdateUserInfoDto, UpdateEmailDto, DeleteAccountDto } from './dto';
 
 /**
  * Users Controller
@@ -52,8 +53,9 @@ export class UsersController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Chưa đăng nhập',
   })
-  async getMe(@CurrentUser() user: JwtPayload): Promise<UserResponseDto> {
-    return this.usersService.getCurrentUser(user.sub);
+  async getMe(@CurrentUser() user: AuthenticatedUser): Promise<UserResponseDto> {
+    console.log('[GET_ME] JWT Payload:', { email: user.email, userId: user.id, role: user.role });
+    return this.usersService.getCurrentUser(user.id);
   }
 
   /**
@@ -82,8 +84,8 @@ export class UsersController {
       },
     },
   })
-  async getProfileStatus(@CurrentUser() user: JwtPayload) {
-    return this.usersService.getProfileCompletionStatus(user.sub);
+  async getProfileStatus(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getProfileCompletionStatus(user.id);
   }
 
   /**
@@ -115,10 +117,10 @@ export class UsersController {
     description: 'Dữ liệu không hợp lệ',
   })
   async updatePassword(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdatePasswordDto,
   ): Promise<{ message: string }> {
-    return this.usersService.updatePassword(user.sub, dto);
+    return this.usersService.updatePassword(user.id, dto);
   }
 
   /**
@@ -147,9 +149,9 @@ export class UsersController {
     },
   })
   async requestUpdateInfoOtp(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ message: string; expiresAt: Date }> {
-    return this.usersService.requestUpdateInfoOtp(user.sub);
+    return this.usersService.requestUpdateInfoOtp(user.id);
   }
 
   /**
@@ -181,10 +183,10 @@ export class UsersController {
     description: 'Mã OTP không hợp lệ hoặc đã hết hạn',
   })
   async updateUserInfo(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateUserInfoDto,
   ): Promise<{ message: string }> {
-    return this.usersService.updateUserInfo(user.sub, dto);
+    return this.usersService.updateUserInfo(user.id, dto);
   }
 
   /**
@@ -192,6 +194,8 @@ export class UsersController {
    * POST /users/me/request-password-otp
    */
   @Post('me/request-password-otp')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Yêu cầu mã OTP để đổi mật khẩu',
@@ -212,9 +216,10 @@ export class UsersController {
     },
   })
   async requestPasswordChangeOtp(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ message: string; expiresAt: Date }> {
-    return this.usersService.requestPasswordChangeOtp(user.sub);
+    console.log('[REQUEST_PASSWORD_CHANGE_OTP] User:', user.email, 'UserId:', user.id);
+    return this.usersService.requestPasswordChangeOtp(user.id);
   }
 
   /**
@@ -246,15 +251,149 @@ export class UsersController {
     description: 'Mã OTP không hợp lệ hoặc đã hết hạn',
   })
   async updatePasswordWithOtp(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body()
     body: { currentPassword: string; newPassword: string; otpCode: string },
   ): Promise<{ message: string }> {
     return this.usersService.updatePasswordWithOtp(
-      user.sub,
+      user.id,
       body.currentPassword,
       body.newPassword,
       body.otpCode,
     );
+  }
+
+  /**
+   * Request OTP for email change
+   * POST /users/me/request-email-change-otp
+   */
+  @Post('me/request-email-change-otp')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Yêu cầu mã OTP để đổi email',
+    description: 'Gửi mã OTP đến email hiện tại để xác thực việc đổi email',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Mã OTP đã được gửi',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Mã OTP đã được gửi đến email hiện tại của bạn',
+        },
+        expiresAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async requestEmailChangeOtp(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ message: string; expiresAt: Date }> {
+    console.log('[REQUEST_EMAIL_CHANGE_OTP] User:', user.email, 'UserId:', user.id);
+    return this.usersService.requestEmailChangeOtp(user.id);
+  }
+
+  /**
+   * Update email with OTP
+   * PUT /users/me/email
+   */
+  @Put('me/email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Đổi email với xác thực OTP',
+    description: 'Đổi email tài khoản với mã OTP xác thực',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Email đã được cập nhật',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Email đã được cập nhật. Vui lòng kiểm tra email mới để xác thực',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Email đã tồn tại hoặc mã OTP không hợp lệ',
+  })
+  async updateEmail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateEmailDto,
+  ): Promise<{ message: string }> {
+    return this.usersService.updateEmail(user.id, dto);
+  }
+
+  /**
+   * Request OTP for account deletion
+   * POST /users/me/request-deletion-otp
+   */
+  @Post('me/request-deletion-otp')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Yêu cầu mã OTP để xóa tài khoản',
+    description: 'Gửi mã OTP đến email để xác thực việc xóa tài khoản',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Mã OTP đã được gửi',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Mã OTP đã được gửi đến email của bạn',
+        },
+        expiresAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async requestAccountDeletionOtp(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ message: string; expiresAt: Date }> {
+    console.log('[REQUEST_DELETION_OTP] User:', user.email, 'UserId:', user.id);
+    return this.usersService.requestAccountDeletionOtp(user.id);
+  }
+
+  /**
+   * Delete account with OTP
+   * POST /users/me/delete
+   */
+  @Post('me/delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Xóa tài khoản với xác thực OTP',
+    description: 'Xóa tài khoản người dùng với mã OTP xác thực',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Tài khoản đã được xóa',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Tài khoản đã được xóa thành công',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Mã OTP không hợp lệ hoặc đã hết hạn',
+  })
+  async deleteAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DeleteAccountDto,
+  ): Promise<{ message: string }> {
+    return this.usersService.deleteAccount(user.id, dto);
   }
 }

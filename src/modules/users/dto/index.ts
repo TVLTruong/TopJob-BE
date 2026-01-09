@@ -3,3 +3,6 @@
 export * from './user-response.dto';
 export * from './update-password.dto';
 export * from './update-user-info.dto';
+export * from './update-email.dto';
+export * from './delete-account.dto';
+

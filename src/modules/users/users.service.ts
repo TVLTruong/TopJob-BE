@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,6 +20,7 @@ import {
 import { UserResponseDto, UpdatePasswordDto, UpdateUserInfoDto, UpdateEmailDto, DeleteAccountDto } from './dto';
 import { OtpService } from '../auth/services/otp.service';
 import { EmailService } from '../auth/services/email.service';
+import { StorageService } from '../storage/storage.service';
 
 /**
  * Users Service
@@ -26,6 +28,8 @@ import { EmailService } from '../auth/services/email.service';
  */
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -35,12 +39,14 @@ export class UsersService {
     private readonly employerRepository: Repository<Employer>,
     private readonly otpService: OtpService,
     private readonly emailService: EmailService,
+    private readonly storageService: StorageService,
   ) {}
 
   /**
    * Get current user info (GET /users/me)
    */
   async getCurrentUser(userId: string): Promise<UserResponseDto> {
+    console.log('[GET_CURRENT_USER] Looking up user with ID:', userId);
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['candidate', 'employer'],
@@ -50,6 +56,7 @@ export class UsersService {
       throw new NotFoundException('Không tìm thấy người dùng');
     }
 
+    console.log('[GET_CURRENT_USER] Found user:', { id: user.id, email: user.email, role: user.role });
     return this.mapToUserResponse(user);
   }
 
@@ -425,6 +432,7 @@ export class UsersService {
   async requestEmailChangeOtp(
     userId: string,
   ): Promise<{ message: string; expiresAt: Date }> {
+    console.log('[REQUEST_EMAIL_CHANGE_OTP] Received userId:', userId);
     const user = await this.userRepository.findOne({
       where: { id: userId },
     });
@@ -432,6 +440,8 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('Không tìm thấy người dùng');
     }
+
+    console.log('[REQUEST_EMAIL_CHANGE_OTP] Found user:', { id: user.id, email: user.email, role: user.role });
 
     try {
       // Generate and save OTP using EMAIL_CHANGE purpose
@@ -451,7 +461,7 @@ export class UsersService {
       console.log(`[EMAIL_CHANGE_OTP] Email sent successfully to ${user.email}`);
 
       return {
-        message: 'Mã OTP đã được gửi đến email hiện tại của bạn',
+        message: `Mã OTP đã được gửi đến email: ${user.email}`,
         expiresAt,
       };
     } catch (error) {
@@ -491,30 +501,16 @@ export class UsersService {
       OtpPurpose.EMAIL_CHANGE,
     );
 
-    // Update email and mark as unverified
+    // Update email and auto-verify (since user already verified old email)
     user.email = dto.newEmail.toLowerCase();
-    user.isVerified = false;
-    user.emailVerifiedAt = null;
-    user.status = UserStatus.PENDING_EMAIL_VERIFICATION;
+    user.isVerified = true;
+    user.emailVerifiedAt = new Date();
+    user.status = UserStatus.ACTIVE;
 
     await this.userRepository.save(user);
 
-    // Send verification email to new address
-    const verificationOtp = await this.otpService.createOtp(
-      dto.newEmail.toLowerCase(),
-      OtpPurpose.EMAIL_VERIFICATION,
-    );
-
-    await this.emailService.sendOtpEmail(
-      dto.newEmail.toLowerCase(),
-      verificationOtp.otpCode,
-      OtpPurpose.EMAIL_VERIFICATION,
-      verificationOtp.expiresInMinutes,
-    );
-
     return {
-      message:
-        'Email đã được cập nhật. Vui lòng kiểm tra email mới để xác thực',
+      message: 'Email đã được cập nhật thành công',
     };
   }
 
@@ -552,6 +548,7 @@ export class UsersService {
 
   /**
    * Delete account with OTP verification
+   * Hard delete - removes user, candidate profile, and all CVs from storage
    */
   async deleteAccount(
     userId: string,
@@ -559,6 +556,7 @@ export class UsersService {
   ): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
+      relations: ['candidate', 'candidate.cvs'],
     });
 
     if (!user) {
@@ -574,13 +572,37 @@ export class UsersService {
 
     // Log deletion reason if provided
     if (dto.reason) {
-      console.log(`User ${user.email} deleted account. Reason: ${dto.reason}`);
+      this.logger.log(`User ${user.email} deleted account. Reason: ${dto.reason}`);
     }
 
-    // Soft delete - ban the account instead of hard delete
-    // This preserves data integrity for related records
-    user.status = UserStatus.BANNED;
-    await this.userRepository.save(user);
+    // Delete CV files from storage if user is a candidate
+    if (user.role === UserRole.CANDIDATE && user.candidate && user.candidate.cvs) {
+      for (const cv of user.candidate.cvs) {
+        try {
+          await this.storageService.deleteFile(cv.fileUrl);
+          this.logger.log(`Deleted CV file: ${cv.fileName}`);
+        } catch (error) {
+          this.logger.warn(`Failed to delete CV file: ${cv.fileName}`, error);
+          // Continue with account deletion even if file deletion fails
+        }
+      }
+    }
+
+    // Delete candidate profile (cascade will delete CVs from DB)
+    if (user.candidate) {
+      await this.candidateRepository.remove(user.candidate);
+      this.logger.log(`Deleted candidate profile for user ${user.email}`);
+    }
+
+    // Delete employer profile if exists
+    if (user.employer) {
+      await this.employerRepository.remove(user.employer);
+      this.logger.log(`Deleted employer profile for user ${user.email}`);
+    }
+
+    // Delete user account
+    await this.userRepository.remove(user);
+    this.logger.log(`Deleted user account: ${user.email}`);
 
     return { message: 'Tài khoản đã được xóa thành công' };
   }
