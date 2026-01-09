@@ -16,7 +16,7 @@ import {
   EmployerStatus,
   OtpPurpose,
 } from '../../common/enums';
-import { UserResponseDto, UpdatePasswordDto, UpdateUserInfoDto } from './dto';
+import { UserResponseDto, UpdatePasswordDto, UpdateUserInfoDto, UpdateEmailDto, DeleteAccountDto } from './dto';
 import { OtpService } from '../auth/services/otp.service';
 import { EmailService } from '../auth/services/email.service';
 
@@ -417,5 +417,171 @@ export class UsersService {
     await this.userRepository.save(user);
 
     return { message: 'Đổi mật khẩu thành công' };
+  }
+
+  /**
+   * Request OTP for email change
+   */
+  async requestEmailChangeOtp(
+    userId: string,
+  ): Promise<{ message: string; expiresAt: Date }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    try {
+      // Generate and save OTP using EMAIL_CHANGE purpose
+      const { otpCode, expiresAt, expiresInMinutes } =
+        await this.otpService.createOtp(user.email, OtpPurpose.EMAIL_CHANGE);
+
+      console.log(`[EMAIL_CHANGE_OTP] Generated OTP for ${user.email}, code: ${otpCode}, expires in: ${expiresInMinutes}m`);
+
+      // Send OTP email using email service
+      await this.emailService.sendOtpEmail(
+        user.email,
+        otpCode,
+        OtpPurpose.EMAIL_CHANGE,
+        expiresInMinutes,
+      );
+
+      console.log(`[EMAIL_CHANGE_OTP] Email sent successfully to ${user.email}`);
+
+      return {
+        message: 'Mã OTP đã được gửi đến email hiện tại của bạn',
+        expiresAt,
+      };
+    } catch (error) {
+      console.error('[EMAIL_CHANGE_OTP] Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update email with OTP verification
+   */
+  async updateEmail(
+    userId: string,
+    dto: UpdateEmailDto,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Check if new email already exists
+    const existingUser = await this.userRepository.findOne({
+      where: { email: dto.newEmail.toLowerCase() },
+    });
+
+    if (existingUser && existingUser.id !== userId) {
+      throw new BadRequestException('Email này đã được sử dụng');
+    }
+
+    // Verify OTP using EMAIL_CHANGE purpose
+    await this.otpService.verifyOtp(
+      user.email,
+      dto.otpCode,
+      OtpPurpose.EMAIL_CHANGE,
+    );
+
+    // Update email and mark as unverified
+    user.email = dto.newEmail.toLowerCase();
+    user.isVerified = false;
+    user.emailVerifiedAt = null;
+    user.status = UserStatus.PENDING_EMAIL_VERIFICATION;
+
+    await this.userRepository.save(user);
+
+    // Send verification email to new address
+    const verificationOtp = await this.otpService.createOtp(
+      dto.newEmail.toLowerCase(),
+      OtpPurpose.EMAIL_VERIFICATION,
+    );
+
+    await this.emailService.sendOtpEmail(
+      dto.newEmail.toLowerCase(),
+      verificationOtp.otpCode,
+      OtpPurpose.EMAIL_VERIFICATION,
+      verificationOtp.expiresInMinutes,
+    );
+
+    return {
+      message:
+        'Email đã được cập nhật. Vui lòng kiểm tra email mới để xác thực',
+    };
+  }
+
+  /**
+   * Request OTP for account deletion
+   */
+  async requestAccountDeletionOtp(
+    userId: string,
+  ): Promise<{ message: string; expiresAt: Date }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Generate and save OTP using ACCOUNT_UPDATE purpose
+    const { otpCode, expiresAt, expiresInMinutes } =
+      await this.otpService.createOtp(user.email, OtpPurpose.ACCOUNT_UPDATE);
+
+    // Send OTP email
+    await this.emailService.sendOtpEmail(
+      user.email,
+      otpCode,
+      OtpPurpose.ACCOUNT_UPDATE,
+      expiresInMinutes,
+    );
+
+    return {
+      message: 'Mã OTP đã được gửi đến email của bạn',
+      expiresAt,
+    };
+  }
+
+  /**
+   * Delete account with OTP verification
+   */
+  async deleteAccount(
+    userId: string,
+    dto: DeleteAccountDto,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Verify OTP using ACCOUNT_UPDATE purpose
+    await this.otpService.verifyOtp(
+      user.email,
+      dto.otpCode,
+      OtpPurpose.ACCOUNT_UPDATE,
+    );
+
+    // Log deletion reason if provided
+    if (dto.reason) {
+      console.log(`User ${user.email} deleted account. Reason: ${dto.reason}`);
+    }
+
+    // Soft delete - ban the account instead of hard delete
+    // This preserves data integrity for related records
+    user.status = UserStatus.BANNED;
+    await this.userRepository.save(user);
+
+    return { message: 'Tài khoản đã được xóa thành công' };
   }
 }
